@@ -618,7 +618,7 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 /* Tim ở góc trên bên phải, ngang hàng chất bài góc trái */
 .face-hearts {
   position: absolute;
-  top: calc(var(--cw) * .081); /* giữa tim ngang giữa chất bài góc trái */
+  top: calc(var(--cw) * .098); /* hạ xuống cho cân với chất bài góc trái (chất bài nặng phần dưới) */
   right: calc(var(--cw) * .085);
   font-size: max(10.6px, calc(var(--cw) * .0875)); /* to hơn 25% so với .07 */
   line-height: 1;
@@ -904,6 +904,11 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
   bottom: calc(84px + env(safe-area-inset-bottom));
   z-index: 45;
   max-width: min(360px, calc(100% - 32px));
+  transition: bottom .2s;
+}
+/* Điện thoại: thông báo (VD "Đã xoá … · Hoàn tác") cũng nằm trên thanh tab, đẩy bong bóng lên trên nó */
+@media (max-width: 959px) {
+  body:has(#toast:not([hidden])) .quip-float { bottom: calc(142px + env(safe-area-inset-bottom)); }
 }
 .quip-float::before {
   content: "🃏";
@@ -1538,6 +1543,55 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
   pointer-events: none;
 }
 .swatch.custom.on::after { content: ""; }
+button.swatch { flex: none; padding: 0; border: 0; }
+button.swatch:focus-visible { outline: 2.5px solid var(--tomato); outline-offset: 5px; }
+.swatch.custom[aria-expanded="true"] { box-shadow: inset 0 0 0 1px rgb(0 0 0 / .15), 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+
+/* Bảng chọn màu riêng: Sắc màu + Độ sáng (mặc định cả hai ở giữa) */
+.hue-panel {
+  --h: 180;
+  --pick: #3DC2C2;
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.hue-row { display: grid; grid-template-columns: 62px minmax(0, 1fr); align-items: center; gap: 10px; font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
+.hue-row input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / .12);
+  cursor: pointer;
+}
+.hue-range { background: linear-gradient(90deg, hsl(0 70% 50%), hsl(60 70% 50%), hsl(120 70% 50%), hsl(180 70% 50%), hsl(240 70% 50%), hsl(300 70% 50%), hsl(360 70% 50%)); }
+.light-range { background: linear-gradient(90deg, hsl(var(--h) 70% 10%), hsl(var(--h) 70% 50%), hsl(var(--h) 70% 90%)); }
+.hue-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px;
+  height: 26px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--pick);
+  box-shadow: 0 1px 5px rgb(0 0 0 / .35);
+}
+.hue-row input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--pick);
+  box-shadow: 0 1px 5px rgb(0 0 0 / .35);
+}
+.hue-row input[type="range"]:focus-visible { outline: 2.5px solid var(--tomato); outline-offset: 3px; }
+.hue-foot { display: flex; align-items: center; justify-content: space-between; }
+.hue-preview { width: 44px; height: 26px; border-radius: 8px; background: var(--pick); box-shadow: inset 0 0 0 1px rgb(0 0 0 / .15); }
 
 .back-pick { width: 72px; height: 100px; border-radius: 12px; }
 .back-pick + .field-hint { flex: 1; margin: 0; }
@@ -1637,6 +1691,22 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 .food-form-body { display: flex; flex-direction: column; gap: 14px; padding-top: 2px; }
 .form-error { margin: 0; padding: 10px 20px; border-top: 1px solid var(--line); color: var(--tomato-deep); font-size: 13.5px; font-weight: 700; }
 @media (min-width: 640px) { .sheet.food-sheet { width: min(480px, calc(100% - 32px)); } }
+/* Điện thoại: popup thêm / sửa món nằm ở phần trên màn hình, chừa phần dưới cho bàn phím */
+@media (max-width: 639px) {
+  .sheet.food-sheet {
+    margin: 0 0 auto;
+    max-height: 88vh;
+    max-height: 88dvh;
+    border-radius: 0 0 22px 22px;
+    border-width: 0 0 1px;
+    padding-top: env(safe-area-inset-top);
+  }
+  .sheet.food-sheet[open] { animation-name: sheet-down; }
+  .food-sheet .sheet-foot { padding-bottom: 14px; }
+  .food-sheet .sheet-foot .btn { padding: 0 14px; white-space: nowrap; }
+  .food-sheet .sheet-foot .btn[data-close] { flex: 0 0 96px; } /* nút Huỷ gọn, chừa chỗ cho "Thêm vào thực đơn" một dòng */
+}
+@keyframes sheet-down { from { opacity: 0; transform: translateY(-16px); } }
 
 /* Nút Thêm món cạnh tiêu đề Thực đơn */
 /* Hàng "Thực đơn · N món · + Thêm món" dính trên cùng khi cuộn danh sách */
@@ -1925,7 +1995,7 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
   font-size: 14px;
   font-weight: 700;
 }
-#spinTools .veg-toggle > span { flex: 1; text-align: left; }
+#spinTools .veg-toggle > span { flex: 1; text-align: left; white-space: nowrap; }
 #spinTools .veg-toggle .veg-icon { width: 22px; height: 22px; }
 #spinTools .veg-toggle:hover { background: color-mix(in srgb, var(--ink) 6%, var(--surface-2)); }
 #spinTools .veg-toggle:has(:checked) { background: color-mix(in srgb, var(--veg) 18%, var(--surface-2)); }
@@ -1941,6 +2011,8 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 }
 
 #view-spin .pool-note { margin-top: 10px; font-size: 13.5px; }
+/* Tự động / Tôi chọn: ô đang chọn tô cam */
+#modeSeg input:checked + span { background: var(--tomato); color: var(--on-tomato); box-shadow: 0 2px 6px -2px color-mix(in srgb, var(--tomato) 70%, transparent); }
 
 /* Màn rộng: loại món thành hàng ngang icon + chữ */
 @media (min-width: 640px) {
@@ -1956,3 +2028,14 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 }
 
 @media (prefers-color-scheme: dark) { .form-error { color: var(--tomato); } }
+
+/* ===== Bốc bài trên desktop: bộ bài ở giữa, cả màn vừa khít chiều cao cửa sổ (màn rộng nhưng thấp không phải cuộn) =====
+   Sân khấu và lá bài co theo chiều cao cửa sổ (tỉ lệ sân khấu / lá giữ như bản 500px / 178px);
+   nút Xào bài kéo sát lên phần trống dưới bộ bài. */
+@media (min-width: 960px) {
+  #view-spin { --stage-h: clamp(320px, calc((100vh - 340px) / .88), 500px); }
+  #view-spin .stage { height: var(--stage-h); --cw: calc(var(--stage-h) * .356); --ch: calc(var(--cw) * 1.393); }
+  /* Nằm trên các lá khi xoè bài để luôn bấm được (VD "Chọn ngẫu nhiên") */
+  #view-spin .actions { position: relative; z-index: 7; margin-top: calc(var(--stage-h) * -.12); }
+  #view-spin .quip { bottom: calc(var(--stage-h) * .12 + 6px); } /* lời bình không bị nút che */
+}

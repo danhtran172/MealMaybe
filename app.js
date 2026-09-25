@@ -490,7 +490,7 @@
   // Trạng thái trong phiên: số lá đã rút mà chưa chốt, món vừa ra, số lần gặp từng món...
   const talk = {
     streak: 0, lastFood: null, seen: new Map(), lastCommitAt: 0, lastLine: '',
-    spins: 0, revealAt: 0, peeks: 0, peekTold: 0, modeFlips: [], filterFlips: [], vegEdits: [], autoPicked: false, edgePicked: false,
+    spins: 0, revealAt: 0, peeks: 0, peekTold: 0, adds: [], modeFlips: [], filterFlips: [], vegEdits: [], autoPicked: false, edgePicked: false,
   };
   // Bong bóng lời bình: trên sân khấu ở màn Bốc bài, nổi phía trên thanh tab ở các màn khác
   const quipStage = $('#quip');
@@ -531,10 +531,10 @@
   }
 
   // Ghi lại một lần đổi (chế độ / bộ lọc); đủ `limit` lần trong 20 giây thì trả về true
-  function flipped(list, limit) {
+  function flipped(list, limit, windowMs = 20e3) {
     const now = Date.now();
     list.push(now);
-    while (list.length && now - list[0] > 20e3) list.shift();
+    while (list.length && now - list[0] > windowMs) list.shift();
     if (list.length < limit) return false;
     list.length = 0;
     return true;
@@ -1360,6 +1360,7 @@
     if (ui.editingId === id) form.elements[mode].checked = !f[mode];
     save();
     renderAll();
+    if (!f[mode]) quip(mode === 'cook' ? 'whereCook' : 'whereOut', { name: f.name }, 0.5);
   }
 
   function toggleVeg(id) {
@@ -1380,6 +1381,7 @@
     save();
     renderMenu();
     announce(`${f.name}: ${n}/${HEARTS_MAX} tim`);
+    if (n === 5 || n === 1) quip(n === 5 ? 'rate5' : 'rate1', { name: f.name }, 0.6);
   }
 
   function removeFood(id) {
@@ -1396,8 +1398,10 @@
         state.foods = [...state.foods.slice(0, idx), food, ...state.foods.slice(idx)];
         save();
         renderAll();
+        quip('restoreFood', { name: food.name }, 0.8);
       },
     });
+    quip(food.hearts === 5 ? 'deleteFive' : 'deleteFood', { name: food.name }, food.hearts === 5 ? 0.9 : 0.6);
   }
 
   // ---------- Màn Gần đây: hai danh sách ăn ngoài / nấu ăn ----------
@@ -1594,14 +1598,61 @@
   // `items()` được gọi mỗi lần vẽ nên danh sách có thể đổi (gợi ý theo màu bộ bài, màu đã dùng).
   // Ô chọn màu tuỳ ý không bao giờ bị gỡ khỏi DOM, để bảng chọn màu của trình duyệt không tự đóng khi đang kéo.
   function colorPicker({ box, name, items, hexInput, nameEl, onPick }) {
-    const input = document.createElement('input');
-    input.type = 'color';
-    input.setAttribute('aria-label', 'Chọn màu khác');
-    const custom = document.createElement('label');
+    // Ô "+": mở bảng chọn màu riêng (2 thanh Sắc màu / Độ sáng) thay cho bảng chọn màu của hệ điều hành
+    // (trên điện thoại bảng đó hay mở ra ở màu đen, thanh kéo nằm tận cùng)
+    const custom = document.createElement('button');
+    custom.type = 'button';
     custom.className = 'swatch custom';
     custom.title = 'Chọn màu khác';
-    custom.append(input);
+    custom.setAttribute('aria-label', 'Chọn màu khác');
+    custom.setAttribute('aria-expanded', 'false');
     box.append(custom);
+    const panel = document.createElement('div');
+    panel.className = 'hue-panel';
+    panel.hidden = true;
+    panel.innerHTML = `
+      <label class="hue-row"><span>Sắc màu</span><input type="range" class="hue-range" min="0" max="360" step="1"></label>
+      <label class="hue-row"><span>Độ sáng</span><input type="range" class="light-range" min="10" max="90" step="1"></label>
+      <div class="hue-foot"><span class="hue-preview" aria-hidden="true"></span><button type="button" class="link">Xong</button></div>`;
+    box.after(panel);
+    const hueEl = panel.querySelector('.hue-range');
+    const lightEl = panel.querySelector('.light-range');
+    const SAT = 0.7;
+    const sliderHex = () => hslToHex(Number(hueEl.value), SAT, Number(lightEl.value) / 100);
+    const paintPanel = () => {
+      panel.style.setProperty('--h', hueEl.value);
+      panel.style.setProperty('--pick', sliderHex());
+    };
+    const closePanel = () => { panel.hidden = true; custom.setAttribute('aria-expanded', 'false'); };
+    let current = '';
+    let last = null; // vị trí thanh kéo lần trước, để mở lại đúng chỗ khi màu đang dùng vẫn là màu kéo ra
+    custom.addEventListener('click', () => {
+      if (!panel.hidden) { closePanel(); return; }
+      // Màu đang dùng do thanh kéo tạo ra: giữ nguyên vị trí; màu riêng khác: theo màu đó; còn lại: cả hai thanh nằm giữa
+      if (last && last.hex === current.toUpperCase()) {
+        hueEl.value = last.h;
+        lightEl.value = last.l;
+      } else if (custom.classList.contains('on') && current.startsWith('#')) {
+        const [h, , l] = hexToHsl(current);
+        hueEl.value = Math.round(h);
+        lightEl.value = Math.min(90, Math.max(10, Math.round(l * 100)));
+      } else {
+        hueEl.value = 180;
+        lightEl.value = 50;
+      }
+      paintPanel();
+      panel.hidden = false;
+      custom.setAttribute('aria-expanded', 'true');
+    });
+    for (const el of [hueEl, lightEl]) {
+      el.addEventListener('input', () => {
+        paintPanel();
+        last = { h: hueEl.value, l: lightEl.value, hex: sliderHex() };
+        onPick(last.hex, false);
+      });
+      el.addEventListener('change', () => { const hex = sliderHex(); rememberColor(hex); onPick(hex, true); });
+    }
+    panel.querySelector('.link').addEventListener('click', closePanel);
     let sig = '';
     let list = [];
 
@@ -1623,7 +1674,7 @@
       }
       custom.classList.toggle('on', !hit);
       if (v.startsWith('#')) custom.style.setProperty('--sw', value);
-      input.value = (v.startsWith('#') ? v : fallbackHex ?? '#000000').toLowerCase();
+      current = value;
       nameEl.textContent = hit ? hit.label : 'Màu riêng';
       if (document.activeElement !== hexInput) {
         hexInput.value = v.startsWith('#') ? value.toUpperCase() : '';
@@ -1632,10 +1683,8 @@
     }
 
     box.addEventListener('change', e => {
-      if (e.target.name === name) onPick(e.target.value, true);
+      if (e.target.name === name) { closePanel(); onPick(e.target.value, true); }
     });
-    input.addEventListener('input', () => onPick(input.value.toUpperCase(), false));
-    input.addEventListener('change', () => { rememberColor(input.value.toUpperCase()); onPick(input.value.toUpperCase(), true); });
     hexInput.addEventListener('change', () => {
       const hex = parseHex(hexInput.value);
       if (!hex) {
@@ -1829,7 +1878,14 @@
   $('#addFoodBtn').innerHTML = `${ICONS.plus}<span>Thêm món</span>`;
   $('#addFoodBtn').addEventListener('click', () => openAdd());
   foodDialog.querySelector('.icon-btn[data-close]').innerHTML = ICONS.x;
-  foodDialog.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeFoodDialog));
+  // Huỷ / ✕ / Esc khi đang thêm món mới: bộ bài có thể bình luận
+  const cancelFoodDialog = () => {
+    const adding = !ui.editingId;
+    closeFoodDialog();
+    if (adding) quip('cancelAdd', {}, 0.5);
+  };
+  foodDialog.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', cancelFoodDialog));
+  foodDialog.addEventListener('cancel', e => { e.preventDefault(); cancelFoodDialog(); });
   foodDialog.addEventListener('close', afterFoodDialogClosed); // phím Esc
   form.addEventListener('change', () => showFormError(''));
 
@@ -1856,16 +1912,18 @@
       state.foods = state.foods.map(f => f.id !== ui.editingId ? f : {
         ...f, name, cat, out, cook, veg, hearts, img: ui.pendingImg === undefined ? f.img : ui.pendingImg,
       });
-      toast(`Đã lưu ${name}`);
     } else {
       state.foods = [{ id: uid(), name, cat, emoji: null, img: ui.pendingImg ?? null, at: Date.now(), out, cook, veg, hearts }, ...state.foods];
-      toast(`Đã thêm ${name} vào thực đơn`);
     }
-    if (vegChanged) quipOnVegEdit(name, veg);
     save();
     askPersist();
     closeFoodDialog();
     renderAll();
+    // Bộ bài bình luận (sau khi popup đóng để bong bóng không bị che); tắt lời bình thì báo bằng thông báo
+    const spoke = before
+      ? (vegChanged && quipOnVegEdit(name, veg)) || quip('editFood', { name }, 0.8)
+      : (flipped(talk.adds, 3, 120e3) && quip('addStreak')) || quip('addFood', { name });
+    if (!spoke) toast(before ? `Đã lưu ${name}` : `Đã thêm ${name} vào thực đơn`);
   });
 
   $('#foodList').addEventListener('click', e => {

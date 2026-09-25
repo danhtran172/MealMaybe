@@ -260,6 +260,63 @@ window.MEAL_QUIPS = {
       "Bật chay mà không có món chay nào. Ăn không khí hả?",
       "Chay kiểu gì mà thực đơn trống trơn vậy? Đánh dấu vài món đi.",
     ],
+    // Thực đơn: thêm món mới
+    addFood: [
+      "Thêm {name} hả? Được, t nhét vô bộ bài liền. Rút trúng thì đừng chê nha cưng.",
+      "{name} vô thực đơn rồi. Thêm thì hăng lắm, tới lúc chốt lại lựa tới lựa lui.",
+      "Ghi nhận {name}. Thực đơn dài thêm, độ kén của cưng chắc cũng dài thêm.",
+    ],
+    // Thực đơn: thêm 3 món trong vòng 2 phút
+    addStreak: [
+      "Thêm liền tay luôn ha. Bộ bài dày cỡ này mà còn kêu không biết ăn gì là t cạn lời.",
+      "Nhập hàng dữ vậy cưng? Mở quán luôn đi.",
+    ],
+    // Thực đơn: lưu thay đổi của một món
+    editFood: [
+      "Sửa {name} xong rồi. Sửa kỹ vậy mà lúc rút ra lại chê cho coi.",
+      "Đổi tới đổi lui {name}. Món thì đổi được, chứ tính kén của cưng thì không.",
+    ],
+    // Thực đơn: xoá một món
+    deleteFood: [
+      "Đuổi {name} ra khỏi bộ bài. Phũ ghê cưng.",
+      "Tạm biệt {name}. Mai mốt thèm thì đừng có kiếm.",
+      "Xoá {name}. Món nó có làm gì cưng đâu.",
+    ],
+    // Thực đơn: xoá món 5 tim
+    deleteFive: [
+      "Xoá luôn {name} năm tim? Tình cảm gì mà mỏng dữ vậy cưng.",
+      "Món ruột năm tim mà cũng xoá. T bắt đầu sợ cưng rồi đó.",
+    ],
+    // Thực đơn: bấm Hoàn tác sau khi xoá
+    restoreFood: [
+      "Ủa rồi rước {name} về lại hả? Biết ngay mà.",
+      "{name} về lại rồi. Lần sau nghĩ kỹ rồi hẵng bấm nha cưng.",
+    ],
+    // Thực đơn: chấm món lên 5 tim
+    rate5: [
+      "{name} lên năm tim. Mê rồi thì lúc rút ra đừng có chê nha.",
+      "Năm tim cho {name}. T ghi lại làm bằng chứng.",
+    ],
+    // Thực đơn: chấm món còn 1 tim
+    rate1: [
+      "{name} một tim. Không thích thì xoá luôn, giữ chi cho chật bộ bài.",
+      "Một tim thôi hả? Món nghe tủi dữ.",
+    ],
+    // Thực đơn: bật Nấu ăn cho một món
+    whereCook: [
+      "{name} giờ cũng tự nấu được hả? Nấu thì nhớ đừng đốt bếp nha cưng.",
+      "Cho {name} vô bộ bài nấu ăn. Để coi cưng có dám vô bếp không.",
+    ],
+    // Thực đơn: bật Ăn ngoài cho một món
+    whereOut: [
+      "{name} giờ ăn ngoài được luôn. Lười nấu thì nói đại đi cưng.",
+      "Cho {name} vô bộ bài ăn ngoài. Ví tiền cưng chắc đang run.",
+    ],
+    // Thực đơn: mở popup thêm món rồi huỷ
+    cancelAdd: [
+      "Mở ra rồi đóng. Tính thêm món hay tính thử lòng t?",
+      "Huỷ hả? Biết ngay là chưa nghĩ ra món nào mà.",
+    ],
   },
 
   // Thân thiện: ấm áp, động viên; xưng "mình", gọi "bạn"
@@ -437,6 +494,51 @@ window.MEAL_QUIPS = {
     ],
     vegEmpty: [
       "Chưa có món chay nào ở đây. Đánh dấu vài món chay trong Thực đơn nha.",
+    ],
+    addFood: [
+      "Đã thêm {name}! Thực đơn phong phú hơn rồi nè.",
+      "{name} nghe ngon ghê, mình cất vào bộ bài rồi nha.",
+      "Thêm {name} rồi đó. Mong sớm rút trúng món này cho bạn!",
+    ],
+    addStreak: [
+      "Bạn thêm nhiều món quá, thực đơn đầy đặn hẳn luôn!",
+      "Chăm chỉ ghê, giờ rút bài sẽ vui hơn nhiều đó.",
+    ],
+    editFood: [
+      "Đã cập nhật {name}, gọn gàng hơn rồi nè.",
+      "Lưu {name} rồi nha, giờ thông tin chuẩn hơn hẳn.",
+    ],
+    deleteFood: [
+      "Đã bỏ {name}. Lỡ tay thì bấm Hoàn tác nha.",
+      "Tạm biệt {name}! Thực đơn gọn hơn chút rồi.",
+    ],
+    deleteFive: [
+      "Ơ, {name} năm tim mà bỏ luôn hả? Lỡ tay thì bấm Hoàn tác nha.",
+      "Bỏ cả món 5 tim, chắc bạn đổi khẩu vị rồi ha.",
+    ],
+    restoreFood: [
+      "Đã đưa {name} trở lại, không sao đâu nè.",
+      "{name} quay về thực đơn rồi, yên tâm nha.",
+    ],
+    rate5: [
+      "{name} năm tim! Chắc là món ruột của bạn rồi.",
+      "Năm tim luôn, {name} hẳn ngon lắm ha.",
+    ],
+    rate1: [
+      "{name} một tim ha, chắc chưa hợp khẩu vị bạn lắm.",
+      "Một tim cũng được, biết đâu có ngày bạn đổi ý.",
+    ],
+    whereCook: [
+      "{name} có trong bộ bài nấu ăn rồi, tự nấu chắc vui lắm!",
+      "Ghi {name} là món tự nấu được rồi nha.",
+    ],
+    whereOut: [
+      "{name} có trong bộ bài ăn ngoài rồi nè.",
+      "Ra ngoài ăn {name} cũng hay, đổi gió chút!",
+    ],
+    cancelAdd: [
+      "Không sao, khi nào nhớ ra món nào thì thêm sau nha.",
+      "Đóng rồi ha, mình vẫn ở đây khi bạn cần.",
     ],
   },
 
@@ -633,6 +735,51 @@ window.MEAL_QUIPS = {
     vegEmpty: [
       "Bạn đi trước thời đại, thực đơn chưa kịp có món chay theo bạn.",
     ],
+    addFood: [
+      "Thêm {name}! Gu chọn món của bạn đúng là không đùa được.",
+      "{name} được bạn chọn vào thực đơn, món này có phước ghê.",
+      "Món nào bạn thêm vào cũng sang hẳn lên, {name} cũng vậy.",
+    ],
+    addStreak: [
+      "Thêm món nhanh như bếp trưởng, bạn đúng là có nghề.",
+      "Thực đơn này chưa bao giờ xịn như lúc có bạn chăm chút.",
+    ],
+    editFood: [
+      "Bạn chỉnh {name} tinh tế quá, đúng là người để ý từng chi tiết.",
+      "Qua tay bạn, {name} xịn hơn hẳn luôn.",
+    ],
+    deleteFood: [
+      "Bạn loại {name} dứt khoát ghê, đúng chất người có chính kiến.",
+      "{name} không theo kịp gu bạn, bỏ là phải rồi.",
+    ],
+    deleteFive: [
+      "Dám bỏ cả món 5 tim, bạn đúng là người dám thay đổi.",
+      "Bạn buông {name} năm tim nhẹ tênh, bản lĩnh thật sự.",
+    ],
+    restoreFood: [
+      "Bạn nhân hậu quá, cho {name} thêm một cơ hội luôn.",
+      "Biết quay lại đúng lúc, bạn quyết định chuẩn thật.",
+    ],
+    rate5: [
+      "{name} được bạn chấm năm tim, vinh dự cả đời của món đó.",
+      "Bạn chấm điểm chuẩn như giám khảo ẩm thực vậy.",
+    ],
+    rate1: [
+      "Bạn khắt khe đúng chuẩn người sành ăn, một tim là đúng rồi.",
+      "{name} chưa đủ đẳng cấp với bạn, một tim là còn nương tay đó.",
+    ],
+    whereCook: [
+      "Bạn nấu được cả {name}? Tay nghề đỉnh thật.",
+      "{name} vào bếp nhà bạn là lên đời liền.",
+    ],
+    whereOut: [
+      "Người sành ăn như bạn biết quán {name} nào ngon hết mà.",
+      "Bạn biết món nào nên ăn ngoài, đúng là dân sành điệu.",
+    ],
+    cancelAdd: [
+      "Bạn cân nhắc kỹ lắm, chưa đủ ngon thì chưa thêm, chuẩn luôn.",
+      "Suy nghĩ thêm cũng là phong cách của người tinh tế.",
+    ],
   },
 
   // Tánh cọc: cọc tính, nóng tính; xưng "t", câu cộc lốc (không chửi thề)
@@ -807,6 +954,51 @@ window.MEAL_QUIPS = {
     ],
     vegEmpty: [
       "Không có món chay nào hết! Đi thêm đi!",
+    ],
+    addFood: [
+      "{name}. Thêm rồi. Được chưa.",
+      "Lại thêm món. Thêm cho lắm rồi cũng không chịu chốt.",
+      "Rồi, {name} vô bộ bài. Xong.",
+    ],
+    addStreak: [
+      "Thêm hoài! Đủ rồi đó.",
+      "Nhiều món vậy rồi còn thêm. Chọn nổi không đó?",
+    ],
+    editFood: [
+      "Sửa rồi. Đừng sửa nữa.",
+      "{name}. Lưu. Xong.",
+    ],
+    deleteFood: [
+      "Xoá {name}. Tốt. Bớt một món phải xào.",
+      "Bỏ thì bỏ. Đừng hối hận.",
+    ],
+    deleteFive: [
+      "Năm tim mà xoá!? Hết hiểu nổi.",
+      "Món ruột cũng bỏ. Tuỳ.",
+    ],
+    restoreFood: [
+      "Xoá rồi lại lấy lại. Lằng nhằng.",
+      "{name} về rồi. Đừng xoá nữa.",
+    ],
+    rate5: [
+      "Năm tim. Ừ. Nhớ đó.",
+      "{name} năm tim. Rút trúng thì chốt liền, khỏi lựa.",
+    ],
+    rate1: [
+      "Một tim. Vậy giữ làm gì.",
+      "{name}. Một tim. Rút trúng đừng có than.",
+    ],
+    whereCook: [
+      "{name} nấu được. Ừ. Nhớ rửa chén.",
+      "Thêm vô bộ nấu. Xong.",
+    ],
+    whereOut: [
+      "Ăn ngoài. Ừ. Tốn tiền.",
+      "{name} ăn ngoài. Ghi rồi.",
+    ],
+    cancelAdd: [
+      "Mở rồi đóng. Rảnh ghê.",
+      "Không thêm thì mở chi.",
     ],
   },
 
@@ -986,6 +1178,51 @@ window.MEAL_QUIPS = {
     ],
     vegEmpty: [
       "Vườn chay trống trơn, gió thổi không thấy cọng rau. Người gieo món đi rồi hẵng gặt.",
+    ],
+    addFood: [
+      "{name} vừa vào thực đơn, như một vần mới cho bài thơ dài… mà thơ càng dài thì người càng kén.",
+      "Thêm {name}. Vườn món thêm một nhành hoa, còn người thêm một lý do để phân vân.",
+      "Ta chép {name} vào sổ món. Mực chưa khô, bụng người chắc đã sôi.",
+    ],
+    addStreak: [
+      "Người gieo món như gieo hạt giữa mùa xuân… tới mùa gặt thì nhớ chốt giùm ta.",
+      "Một món, hai món, ba món… thực đơn dài như sông, còn quyết định của người vẫn nằm ở đầu nguồn.",
+    ],
+    editFood: [
+      "{name} vừa được tô lại nét mày, món có duyên hơn… còn người thì vẫn chưa quyết.",
+      "Sửa {name} như sửa một câu thơ: chữ thì đổi, mà lòng người vẫn không đổi.",
+    ],
+    deleteFood: [
+      "Tiễn {name} ra khỏi thực đơn như lá rụng cuối thu… người quay lưng còn nhanh hơn gió.",
+      "{name} bị gạch tên. Thơ ta thêm một khổ biệt ly.",
+    ],
+    deleteFive: [
+      "Trao {name} năm quả tim, giờ người thu lại hết… tình đâu mà bạc như vôi.",
+      "Xoá cả món năm tim. Ta tưởng chỉ trong thơ mới có kẻ phụ tình như vậy.",
+    ],
+    restoreFood: [
+      "{name} quay về như chim trở lại tổ cũ. Người cũng biết tiếc đấy chứ.",
+      "Gương vỡ lại lành, món bị xoá lại về. Hiếm có.",
+    ],
+    rate5: [
+      "Năm tim cho {name}, ta chép lại làm chứng… mai đừng phụ nhau.",
+      "{name} được năm tim, như trăng rằm tròn vành. Mong người đừng để trăng khuyết.",
+    ],
+    rate1: [
+      "{name} một tim, như ngọn đèn leo lét cuối ngõ… người giữ lại làm chi cho ta thêm buồn.",
+      "Một tim lẻ bóng. Ta viết cho {name} một bài thơ đơn phương.",
+    ],
+    whereCook: [
+      "{name} được mời vào gian bếp, nơi khói lam vương vấn… và chén bát đang chờ người rửa.",
+      "Người cho {name} vào bếp, ta cho {name} vào thơ.",
+    ],
+    whereOut: [
+      "{name} bước ra phố, theo gió về quán quen… còn ví người thì nhẹ tênh như lá.",
+      "Ăn ngoài {name}: phố thì đông, quán thì vui, chỉ có ví là buồn.",
+    ],
+    cancelAdd: [
+      "Trang giấy mở ra rồi gấp lại, chữ chưa kịp viết đã thôi… người ngập ngừng như mây.",
+      "Định thêm mà lại thôi. Có những bài thơ chỉ nằm trong đầu.",
     ],
   },
 };
