@@ -30,7 +30,8 @@
   const PERSONAS = [
     ['sassy', '😏', 'Cá tính'], ['friendly', '😊', 'Thân thiện'], ['flatter', '🥰', 'Xu nịnh'],
   ];
-  const EFFECTS = [['none', 'Không'], ['foil', 'Ánh kim'], ['shine', 'Vệt sáng'], ['glitter', 'Lấp lánh'], ['glow', 'Viền sáng']];
+  // "foil" hiển thị là Cầu vồng (giữ id cũ để không mất lựa chọn đã lưu)
+  const EFFECTS = [['none', 'Không'], ['foil', 'Cầu vồng'], ['shine', 'Vệt sáng'], ['glitter', 'Lấp lánh'], ['glow', 'Viền sáng']];
   const RECENT_MAX = 7;
   const MENU_GROUPS = [['none', 'Không nhóm', '📋'], ['cat', 'Loại món', '🍽️'], ['veg', 'Chay / Mặn', '🥬'], ['where', 'Ăn ngoài / Nấu ăn', '🛵']];
   const HEARTS_MAX = 5;
@@ -138,8 +139,28 @@
         id: uid(), name, cat, emoji, img: null, at: Date.now(), out: w.includes('o'), cook: w.includes('c'), hearts: HEARTS_DEFAULT, veg: SEED_VEG.has(name),
       }));
       state.settings = normalizeSettings();
+      mergeDishBank(); // máy mới: có sẵn luôn kho món gợi ý
       save();
     }
+  }
+
+  // Gộp kho món gợi ý (dishes.js) vào thực đơn: chỉ thêm món chưa có (so theo tên), thêm vào cuối,
+  // và mỗi phiên bản kho chỉ gộp một lần nên món người dùng đã xoá không tự quay lại.
+  // Trả về danh sách id vừa thêm (để Hoàn tác).
+  function mergeDishBank() {
+    const bank = window.MEAL_DISHES ?? [];
+    const version = window.MEAL_DISHES_VERSION ?? 0;
+    if (state.settings.dishBank >= version) return [];
+    const have = new Set(state.foods.map(f => f.name.toLocaleLowerCase('vi')));
+    const added = bank
+      .filter(([name, cat]) => CATS[cat] && !have.has(name.toLocaleLowerCase('vi')))
+      .map(([name, cat, emoji, w, veg]) => ({
+        id: uid(), name, cat, emoji, img: null, at: Date.now(),
+        out: w.includes('o'), cook: w.includes('c'), veg: !!veg, hearts: HEARTS_DEFAULT,
+      }));
+    state.foods = [...state.foods, ...added];
+    state.settings.dishBank = version;
+    return added.map(f => f.id);
   }
 
   // Dùng chung cho dữ liệu trên máy và file sao lưu
@@ -183,6 +204,7 @@
       // Màu tự chọn gần đây, dùng chung cho màu bộ bài và màu vân
       recentColors: (Array.isArray(s?.recentColors) ? s.recentColors : []).filter(c => /^#[0-9a-f]{6}$/i.test(c)).slice(0, RECENT_COLORS),
       persona: PERSONAS.some(([id]) => id === s?.persona) ? s.persona : 'sassy',
+      dishBank: Number.isInteger(s?.dishBank) ? s.dishBank : 0, // phiên bản kho món gợi ý đã gộp vào thực đơn
       back: {
         color: b.color === 'none' || /^#[0-9a-f]{6}$/i.test(b.color) ? b.color : DEFAULT_BACK.color,
         img: IMG_RE.test(b.img) ? b.img : null,
@@ -266,16 +288,19 @@
       </button>`).join('');
   }
 
+  // Chất bài của từng loại món: icon trong icons/suits, tô bằng màu của loại (--c)
+  const suit = (cat, cls = '') => `<i class="suit${cls ? ` ${cls}` : ''}" data-cat="${cat}" aria-hidden="true"></i>`;
+
   const chipsHTML = (active, counts) => FILTERS.map(f => `
     <button type="button" class="chip" data-filter="${f.id}" aria-pressed="${f.id === active}">
-      <span aria-hidden="true">${f.emoji}</span>${f.label}${counts ? `<small>${counts[f.id]}</small>` : ''}
+      ${CATS[f.id] ? suit(f.id) : `<span aria-hidden="true">${f.emoji}</span>`}${f.label}${counts ? `<small>${counts[f.id]}</small>` : ''}
     </button>`).join('');
 
   function thumbHTML(food) {
     const cat = CATS[food.cat] ?? CATS.main;
     const inner = food.img
       ? `<img src="${esc(food.img)}" alt="" loading="lazy">`
-      : `<span aria-hidden="true">${esc(food.emoji || cat.emoji)}</span>`;
+      : food.emoji ? `<span aria-hidden="true">${esc(food.emoji)}</span>` : suit(food.cat in CATS ? food.cat : 'main');
     return `<span class="thumb" data-cat="${food.cat}">${inner}</span>`;
   }
 
@@ -569,7 +594,7 @@
     if (food.hearts === 1 && quip('commitOne', v)) return;
     if (ui.mode === 'cook' && quip('commitCook', v, 0.4)) return;
     if (food.cat === 'drink' && quip('commitDrink', v, 0.4)) return;
-    quip('commitGeneric', v, 0.3);
+    quip('commitGeneric', v); // luôn có một câu khi chốt (thay cho thông báo cũ)
   }
 
   // ---------- Bộ bài & hiệu ứng ----------
@@ -602,7 +627,7 @@
   }
 
   function buildDeck(n) {
-    stage.classList.remove('lit');
+    stage.classList.remove('lit', 'fanned');
     stage.replaceChildren();
     deck = [];
     for (let k = 0; k < n; k++) {
@@ -631,17 +656,22 @@
     dealIn();
   }
 
-  function faceHTML(food) {
+  function faceHTML(food, { rate = false } = {}) {
     const cat = CATS[food.cat];
     const art = food.img
       ? `<img src="${esc(food.img)}" alt="">`
-      : `<span class="face-emoji">${esc(food.emoji || cat.emoji)}</span>`;
+      : food.emoji ? `<span class="face-emoji">${esc(food.emoji)}</span>` : suit(food.cat, 'face-suit');
     return `
-      <span class="pip pip-tl">${cat.emoji}</span>${food.veg ? '<span class="veg-mark" title="Món chay" aria-label="Món chay">🌿</span>' : ''}
+      <span class="pip pip-tl">${suit(food.cat)}</span>${food.veg ? '<span class="veg-mark" title="Món chay" aria-label="Món chay">🌿</span>' : ''}
       <div class="face-art">${art}</div>
       <div class="face-name">${esc(food.name)}</div>
-      ${heartsHTML(food.hearts)}
-      <span class="pip pip-br">${cat.emoji}</span>`;
+      ${rate ? rateHTML(food) : heartsHTML(food.hearts)}
+      <span class="pip pip-br">${suit(food.cat)}</span>`;
+  }
+
+  // Hàng tim bấm được để chấm nhanh ngay trên lá (Thực đơn); rê chuột xem trước số tim
+  function rateHTML(food) {
+    return `<div class="face-hearts rate-hearts" role="group" aria-label="Số tim của ${esc(food.name)}">${Array.from({ length: HEARTS_MAX }, (_, i) => `<button type="button" class="${i < food.hearts ? 'on' : ''}" data-act="rate" data-n="${i + 1}" aria-label="${i + 1} tim" aria-pressed="${i + 1 === food.hearts}">♥</button>`).join('')}</div>`;
   }
 
   function heartsHTML(n = HEARTS_DEFAULT) {
@@ -755,6 +785,7 @@
     let pick = count - 1;
     if (!quick || manual) {
       sfx.swish(0, 0.5, 0.13, 700, 3000);
+      stage.classList.add('fanned');
       await live(Promise.all(order.map((c, k) => tween(c.el, { transform: fanT(k) }, {
         duration: 440, delay: k * 22, easing: 'cubic-bezier(.2,.9,.25,1)',
       }))));
@@ -786,6 +817,7 @@
     }
 
     // Rút lá được chọn, lật mặt
+    stage.classList.remove('fanned');
     const chosen = order[pick];
     fillFace(chosen.face, food);
     chosen.el.classList.add('chosen');
@@ -953,8 +985,8 @@
     sfx.thump(0.05);
     quipOnCommit(food);
     renderAll();
-    announce(`Đã chốt ${food.name}.`);
-    toast(bumped ? `Chốt ${food.name}! ${nameOf(bumped)} được trả lại bộ bài.` : `Chốt ${food.name}! Chúc ngon miệng.`);
+    // Không hiện thông báo nữa, lời bình của bộ bài là phản hồi; trình đọc màn hình vẫn được báo đủ
+    announce(`Đã chốt ${food.name}.${bumped ? ` ${nameOf(bumped)} được trả lại bộ bài.` : ''}`);
   }
 
   function setSpinFilter(filter) {
@@ -1013,7 +1045,7 @@
   const imgPreview = $('#imgPreview');
 
   $('#catSeg').innerHTML = Object.entries(CATS).map(([id, c], i) => `
-    <label data-cat="${id}"><input type="radio" name="cat" value="${id}"${i === 0 ? ' checked' : ''}><span>${c.emoji} ${c.label}</span></label>`).join('');
+    <label data-cat="${id}"><input type="radio" name="cat" value="${id}"${i === 0 ? ' checked' : ''}><span>${suit(id)} ${c.label}</span></label>`).join('');
 
   const setFormCat = cat => { form.elements.cat.value = cat; };
   const heartPick = $('#heartPick');
@@ -1169,31 +1201,27 @@
 
     const rest = { out: restingIds('out'), cook: restingIds('cook') };
     const items = state.foods.filter(f => inFilter(f, ui.menuFilter));
-    const toggle = (f, mode) => `
-      <button type="button" class="where-tog" data-act="tog-${mode}" aria-pressed="${f[mode]}" title="${f[mode] ? 'Bỏ' : 'Thêm vào'} bộ bài ${MODES[mode].label.toLowerCase()}">${MODES[mode].emoji} ${mode === 'out' ? 'Ngoài' : 'Nấu'}</button>`;
-    const vegTog = f => `
-      <button type="button" class="where-tog veg-tog" data-act="tog-veg" aria-pressed="${!!f.veg}" title="${f.veg ? 'Bỏ nhãn' : 'Đánh dấu'} món chay">🥬 Chay</button>`;
-    const rate = f => `
-      <span class="rate" role="group" aria-label="Số tim của ${esc(f.name)}">${Array.from({ length: HEARTS_MAX }, (_, i) => `<button type="button" class="${i < f.hearts ? 'on' : ''}" data-act="rate" data-n="${i + 1}" aria-label="${i + 1} tim" aria-pressed="${i + 1 === f.hearts}">♥</button>`).join('')}</span>`;
+    // Nút nhỏ dưới lá: chỉ biểu tượng, chú thích ở title / aria-label
+    const toggle = (f, mode) => {
+      const on = !!f[mode];
+      const label = mode === 'veg' ? 'Món chay' : MODES[mode].label;
+      const emoji = mode === 'veg' ? '🥬' : MODES[mode].emoji;
+      const tip = mode === 'veg' ? `${on ? 'Bỏ nhãn' : 'Đánh dấu'} món chay` : `${on ? 'Bỏ khỏi' : 'Thêm vào'} bộ bài ${label.toLowerCase()}`;
+      return `<button type="button" class="card-tog${mode === 'veg' ? ' veg-tog' : ''}" data-act="tog-${mode}" aria-pressed="${on}" aria-label="${label}" title="${tip}">${emoji}</button>`;
+    };
     const restNote = f => {
       const where = ['out', 'cook'].filter(m => rest[m].has(f.id));
       if (!where.length) return '';
-      return `<span class="resting">Đang nghỉ${where.length === 2 ? '' : ` · ${where[0] === 'out' ? 'ăn ngoài' : 'nấu'}`}</span>`;
+      return `<span class="rest-badge">Đang nghỉ${where.length === 2 ? '' : ` · ${where[0] === 'out' ? 'ngoài' : 'nấu'}`}</span>`;
     };
     const row = f => `
-      <li class="food${ui.editingId === f.id ? ' editing' : ''}" data-id="${f.id}">
-        ${thumbHTML(f)}
-        <div class="food-main">
-          <div class="food-name">${esc(f.name)}</div>
-          <div class="food-meta">
-            <span class="tag" data-cat="${f.cat}">${CATS[f.cat].label}</span>
-            ${rate(f)}
-            ${toggle(f, 'out')}${toggle(f, 'cook')}${vegTog(f)}
-            ${restNote(f)}
-          </div>
+      <li class="food-card${ui.editingId === f.id ? ' editing' : ''}" data-id="${f.id}">
+        ${restNote(f)}
+        <div class="card-face mini-face" data-cat="${f.cat}" data-act="edit" role="button" tabindex="0" aria-label="Sửa ${esc(f.name)}" title="Bấm để sửa">${faceHTML(f, { rate: true })}</div>
+        <div class="card-tools">
+          ${toggle(f, 'out')}${toggle(f, 'cook')}${toggle(f, 'veg')}
+          <button type="button" class="card-tog card-del" data-act="del" aria-label="Xoá ${esc(f.name)}" title="Xoá">${ICONS.trash}</button>
         </div>
-        <button type="button" class="icon-btn" data-act="edit" aria-label="Sửa ${esc(f.name)}" title="Sửa">${ICONS.edit}</button>
-        <button type="button" class="icon-btn danger" data-act="del" aria-label="Xoá ${esc(f.name)}" title="Xoá">${ICONS.trash}</button>
       </li>`;
 
     // Nhóm theo: bỏ lựa chọn "Loại món" khi đang lọc một loại (vd. tab Nước thì mọi món đều là nước)
@@ -1257,7 +1285,7 @@
   // Chia món thành các nhóm có tiêu đề; "none" thì trả về null (danh sách phẳng)
   function menuGroups(items, by) {
     if (by === 'cat') {
-      return Object.entries(CATS).map(([id, c]) => ({ label: `${c.emoji} ${c.label}`, cat: id, items: items.filter(f => f.cat === id) }));
+      return Object.entries(CATS).map(([id, c]) => ({ label: `${suit(id)} ${c.label}`, cat: id, items: items.filter(f => f.cat === id) }));
     }
     if (by === 'veg') {
       return [
@@ -1355,10 +1383,12 @@
       <section class="recent-col${ui.recentMode === mode ? ' active' : ''}" data-mode="${mode}" aria-label="${m.label}">
         <div class="col-head">
           <h3><span aria-hidden="true">${m.emoji}</span> ${m.label}</h3>
-          <span class="meter">${meter}<b>${list.length}/${RECENT_MAX}</b></span>
+          <div class="col-tools">
+            <button type="button" class="clear-recent" data-act="clear"${list.length ? '' : ' disabled'}>${ICONS.trash}Xoá lịch sử ${m.label.toLowerCase()}</button>
+            <span class="meter">${meter}<b>${list.length}/${RECENT_MAX}</b></span>
+          </div>
         </div>
         <ol class="recent-list">${rows.join('')}</ol>
-        ${list.length ? `<button type="button" class="btn ghost small clear-recent" data-act="clear">Xoá lịch sử ${m.label.toLowerCase()}</button>` : ''}
       </section>`;
   }
 
@@ -1505,6 +1535,7 @@
     root.dataset.backPat = b.pattern;
     root.style.setProperty('--back-img', b.img ? `url("${b.img}")` : 'none');
     root.dataset.backFx = b.effect;
+    root.classList.toggle('back-light', light); // hiệu ứng đổi cách hoà màu / màu tia sáng trên nền sáng
   }
 
   function setBack(patch, persist = true) {
@@ -1807,6 +1838,12 @@
     else if (btn.dataset.act === 'tog-veg') toggleVeg(id);
     else if (btn.dataset.act === 'rate') rateFood(id, Number(btn.dataset.n));
   });
+  $('#foodList').addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.food-card > .card-face')) {
+      e.preventDefault();
+      startEdit(e.target.closest('[data-id]').dataset.id);
+    }
+  });
 
   $('#recentCols').addEventListener('click', e => {
     const btn = e.target.closest('[data-act]');
@@ -1917,10 +1954,13 @@
     const y = (e.clientY - r.top) / r.height - 0.5;
     preview.style.setProperty('--rx', `${(-y * 20).toFixed(1)}deg`);
     preview.style.setProperty('--ry', `${(x * 24).toFixed(1)}deg`);
+    preview.style.setProperty('--mx', x.toFixed(3));
+    preview.style.setProperty('--my', y.toFixed(3));
+    preview.classList.add('hovering');
   });
   preview.addEventListener('pointerleave', () => {
-    preview.style.removeProperty('--rx');
-    preview.style.removeProperty('--ry');
+    ['--rx', '--ry', '--mx', '--my'].forEach(p => preview.style.removeProperty(p));
+    preview.classList.remove('hovering');
   });
 
   // ---------- Sao lưu & giữ dữ liệu ----------
@@ -1995,6 +2035,8 @@
   async function boot() {
     $('#tagline').textContent = TAGLINES[rand(TAGLINES.length)];
     await load();
+    const newDishes = mergeDishBank(); // máy đang dùng: nhận thêm món từ kho gợi ý (một lần)
+    if (newDishes.length) save();
     applyBack();
     samplePersona();
     buildDeck(IDLE_DECK);
@@ -2017,6 +2059,17 @@
 
     setView(ui.view);
     renderAll();
+    if (newDishes.length) {
+      toast(`Đã thêm ${newDishes.length} món mới vào thực đơn`, {
+        label: 'Hoàn tác',
+        run: () => {
+          const drop = new Set(newDishes);
+          state.foods = state.foods.filter(f => !drop.has(f.id));
+          save();
+          renderAll();
+        },
+      });
+    }
     if (viewParam === 'add') nameInput.focus();
     updateStorageNote();
     try {
