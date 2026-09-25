@@ -1,4 +1,4 @@
-const CACHE = 'meal-maybe-v4';
+const CACHE = 'meal-maybe-v5';
 const SHELL = [
   './', './index.html', './styles.css', './app.js', './quips.js', './dishes.js', './manifest.webmanifest',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png',
