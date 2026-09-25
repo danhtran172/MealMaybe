@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "meal-maybe",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["tools/serve.mjs"],
+      "port": 5310,
+      "autoPort": true
+    }
+  ]
+}

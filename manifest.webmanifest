@@ -1,0 +1,25 @@
+{
+  "name": "Meal Maybe",
+  "short_name": "Meal Maybe",
+  "description": "Xào bài, rút một lá, chốt món ăn hôm nay.",
+  "lang": "vi",
+  "id": "./",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F6EEDF",
+  "theme_color": "#DF4A2B",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Quay món chính", "short_name": "Món chính", "url": "./index.html?spin=main", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Quay ăn vặt", "short_name": "Ăn vặt", "url": "./index.html?spin=snack", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Quay đồ uống", "short_name": "Nước", "url": "./index.html?spin=drink", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Thêm món mới", "short_name": "Thêm món", "url": "./index.html?view=add", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

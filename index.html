@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Meal Maybe</title>
+  <meta name="description" content="Xào bài, rút một lá, chốt món ăn hôm nay.">
+  <meta name="theme-color" content="#DF4A2B">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="side">
+      <div class="brand">
+        <img src="icons/icon.svg" alt="" width="38" height="38">
+        <div>
+          <h1>Meal <em>Maybe</em></h1>
+          <p class="tagline" id="tagline">Hôm nay ăn gì? Để bộ bài quyết.</p>
+        </div>
+      </div>
+      <nav class="tabs" aria-label="Điều hướng"><div class="tabs-inner" id="tabs"></div></nav>
+      <p class="side-foot">Mẹo: ở màn Quay, bấm <kbd>Space</kbd> để xào bài hoặc chốt món.</p>
+    </header>
+
+    <main class="app">
+      <!-- Quay -->
+      <section class="view" id="view-spin">
+        <div class="where-switch" id="whereSeg" role="radiogroup" aria-label="Ăn ngoài hay nấu ăn">
+          <label><input type="radio" name="where" value="out"><span><b aria-hidden="true">🛵</b> Ăn ngoài</span></label>
+          <label><input type="radio" name="where" value="cook"><span><b aria-hidden="true">🍳</b> Nấu ăn</span></label>
+        </div>
+        <div class="chips" id="spinChips" aria-label="Loại món để quay"></div>
+        <div class="spin-tools" id="spinTools">
+          <button type="button" class="tool-btn" id="peekBtn"></button>
+          <div class="mini-seg" id="modeSeg" role="radiogroup" aria-label="Cách rút bài">
+            <label><input type="radio" name="drawMode" value="auto"><span>Máy rút</span></label>
+            <label><input type="radio" name="drawMode" value="manual"><span>Tự chọn lá</span></label>
+          </div>
+        </div>
+        <p class="pool-note" id="poolNote"></p>
+        <div class="stage-wrap">
+          <button type="button" class="stage-btn back-btn" id="backBtn" title="Về bộ bài (Esc)" hidden></button>
+          <button type="button" class="stage-btn sound-btn" id="soundBtn" aria-label="Âm thanh xào bài"></button>
+          <div class="stage" id="stage" aria-hidden="true"></div>
+          <p class="quip" id="quip" role="status" title="Bấm để tắt" hidden></p>
+        </div>
+        <p class="sr-only" id="announce" aria-live="polite"></p>
+        <div class="actions" id="actions"></div>
+      </section>
+
+      <!-- Thực đơn -->
+      <section class="view" id="view-menu" hidden>
+        <form class="panel" id="foodForm" autocomplete="off">
+          <div class="panel-head">
+            <h2 id="formTitle">Thêm món</h2>
+            <button type="button" class="link" id="cancelEdit" hidden>Huỷ sửa</button>
+          </div>
+          <div class="form-row">
+            <label class="imgpick" id="imgPick" title="Chọn ảnh món">
+              <span class="imgpick-empty" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m21 16-5-5-8 9"/></svg>
+                Ảnh
+              </span>
+              <img id="imgPreview" alt="" hidden>
+              <input type="file" accept="image/*" id="imgInput" aria-label="Ảnh món ăn">
+            </label>
+            <div class="form-fields">
+              <label class="field">
+                <span>Tên món</span>
+                <input id="nameInput" name="name" required maxlength="40" placeholder="VD: Bún riêu cua">
+              </label>
+              <p class="field-hint">Ảnh không bắt buộc, app tự cắt thành hình vuông. <button type="button" class="link inline" id="clearImg" hidden>Bỏ ảnh</button></p>
+            </div>
+          </div>
+          <div class="seg" id="catSeg" role="radiogroup" aria-label="Loại món"></div>
+          <div class="heart-row">
+            <span class="where-label" id="heartLabel">Độ thích</span>
+            <div class="heart-pick" id="heartPick" role="radiogroup" aria-labelledby="heartLabel"></div>
+          </div>
+          <div class="where-pick" role="group" aria-label="Ăn ngoài hay nấu ăn">
+            <span class="where-label">Dùng cho</span>
+            <label><input type="checkbox" name="out" checked><span>🛵 Ăn ngoài</span></label>
+            <label><input type="checkbox" name="cook"><span>🍳 Nấu ăn</span></label>
+          </div>
+          <button class="btn primary" type="submit" id="submitBtn">Thêm vào thực đơn</button>
+        </form>
+
+        <div class="menu-list">
+          <div class="list-head">
+            <h2>Thực đơn</h2>
+            <span class="muted" id="menuCount"></span>
+          </div>
+          <div class="chips small" id="menuChips" aria-label="Lọc thực đơn"></div>
+          <ul class="food-list" id="foodList"></ul>
+
+          <section class="data-box" aria-labelledby="dataTitle">
+            <h3 id="dataTitle">Sao lưu dữ liệu</h3>
+            <p class="hint">Món ăn và ảnh chỉ lưu trên máy này. Thỉnh thoảng hãy sao lưu ra file để không mất khi đổi máy, đổi trình duyệt hay xoá dữ liệu duyệt web.</p>
+            <div class="data-actions">
+              <button type="button" class="btn ghost small" id="exportBtn">Sao lưu ra file</button>
+              <label class="btn ghost small file-btn">
+                Khôi phục từ file
+                <input type="file" accept="application/json,.json" id="importInput">
+              </label>
+            </div>
+            <p class="field-hint" id="storageNote"></p>
+          </section>
+        </div>
+      </section>
+
+      <!-- Gần đây -->
+      <section class="view" id="view-recent" hidden>
+        <div class="list-head">
+          <h2>7 món gần nhất</h2>
+          <div class="mini-seg" id="recentSeg" role="radiogroup" aria-label="Danh sách">
+            <label><input type="radio" name="recentMode" value="out"><span>🛵 Ăn ngoài <small></small></span></label>
+            <label><input type="radio" name="recentMode" value="cook"><span>🍳 Nấu ăn <small></small></span></label>
+          </div>
+        </div>
+        <p class="hint">Món được <b>chốt</b> nằm ở danh sách của chế độ lúc quay (ăn ngoài hoặc nấu ăn), và tạm rút khỏi bộ bài của chế độ đó cho tới khi bị đẩy ra khỏi danh sách hoặc bạn bỏ nó đi.</p>
+        <div class="recent-cols" id="recentCols"></div>
+      </section>
+
+      <!-- Custom bộ bài -->
+      <section class="view" id="view-deck" hidden>
+        <div class="deck-layout">
+          <div class="back-stage">
+            <div class="back-preview" id="backPreview">
+              <div class="tilt"><div class="card-back"><i class="fx"></i></div></div>
+            </div>
+            <p class="hint">Mọi lá trong bộ bài dùng chung lưng này.</p>
+          </div>
+
+          <div class="deck-side">
+          <section class="panel deck-panel" aria-labelledby="backTitle">
+            <div class="panel-head">
+              <div>
+                <h2 id="backTitle">Lưng bài</h2>
+                <p class="panel-sub">Màu, vân, hình và hiệu ứng mặt sau của lá.</p>
+              </div>
+              <button type="button" class="link" id="resetBack">Khôi phục mặc định</button>
+            </div>
+
+            <fieldset class="setting">
+              <legend>Màu bộ bài</legend>
+              <div class="swatches" id="swatches"></div>
+              <div class="color-meta">
+                <span class="color-name" id="backColorName"></span>
+                <input class="hex-input" id="backHex" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Mã màu bộ bài">
+              </div>
+            </fieldset>
+
+            <fieldset class="setting">
+              <legend>Kiểu vân</legend>
+              <div class="pat-grid" id="patGrid"></div>
+            </fieldset>
+
+            <fieldset class="setting" id="patColorSet">
+              <legend>Màu vân</legend>
+              <div class="swatches" id="patSwatches"></div>
+              <div class="color-meta">
+                <span class="color-name" id="patColorName"></span>
+                <input class="hex-input" id="patHex" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Mã màu vân">
+              </div>
+              <p class="color-warn" id="patWarn" hidden>Vân gần trùng màu bộ bài nên khó thấy. Thử ô gợi ý tương phản hoặc tăng độ đậm.</p>
+              <label class="range-field">
+                <span>Độ đậm</span>
+                <input type="range" id="patAlpha" min="8" max="70" step="1">
+                <output id="patAlphaOut" for="patAlpha"></output>
+              </label>
+            </fieldset>
+
+            <fieldset class="setting">
+              <legend>Hình lưng bài</legend>
+              <div class="form-row">
+                <label class="imgpick back-pick" id="backPick" title="Chọn ảnh lưng bài">
+                  <span class="imgpick-empty" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m21 16-5-5-8 9"/></svg>
+                    Ảnh
+                  </span>
+                  <img id="backImgPreview" alt="" hidden>
+                  <input type="file" accept="image/*" id="backImgInput" aria-label="Ảnh lưng bài">
+                </label>
+                <p class="field-hint">Ảnh được cắt theo khổ lá bài và phủ nhẹ màu bộ bài. Vân bài và khung vẫn giữ nguyên trên ảnh. <button type="button" class="link inline" id="clearBackImg" hidden>Bỏ ảnh</button></p>
+              </div>
+            </fieldset>
+
+            <fieldset class="setting">
+              <legend>Hiệu ứng lưng bài</legend>
+              <div class="pills" id="fxPills"></div>
+            </fieldset>
+
+            <label class="field">
+              <span>Huy hiệu giữa lá</span>
+              <input id="emblemInput" maxlength="4" placeholder="Để trống để ẩn huy hiệu">
+            </label>
+          </section>
+
+          <section class="panel talk-panel" id="talkPanel" aria-labelledby="talkTitle">
+            <div class="panel-head">
+              <div>
+                <h2 id="talkTitle">Bộ bài biết nói</h2>
+                <p class="panel-sub">Bình luận khi bạn xào, rút và chốt món.</p>
+              </div>
+              <input type="checkbox" class="switch" id="quipToggle" role="switch" aria-labelledby="talkTitle">
+            </div>
+
+            <fieldset class="setting" id="personaSet">
+              <legend>Tính cách</legend>
+              <div class="pills" id="personaPills"></div>
+            </fieldset>
+
+            <div class="talk-sample">
+              <span class="talk-sample-label">Nghe thử <small>· bấm để nghe câu khác</small></span>
+              <button type="button" class="persona-sample" id="personaSample" aria-live="polite"></button>
+            </div>
+          </section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="sheet" id="deckDialog" aria-labelledby="deckTitle">
+    <div class="sheet-head">
+      <div>
+        <h2 id="deckTitle">Bộ bài</h2>
+        <p class="sheet-sub" id="deckSub"></p>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="Đóng" title="Đóng"></button>
+    </div>
+    <div class="sheet-body">
+      <div class="mini-grid" id="deckGrid"></div>
+      <div id="restWrap">
+        <h3>Đang nghỉ vì mới ăn</h3>
+        <div class="mini-grid" id="restGrid"></div>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button type="button" class="btn ghost" data-close>Đóng</button>
+      <button type="button" class="btn primary" id="peekSpin">Xào bài &amp; rút</button>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script src="quips.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

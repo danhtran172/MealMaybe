@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+  body { display: grid; place-items: center; }
+  img { width: 100vw; height: 100vh; display: block; }
+  .maskable { background: #DF4A2B; }
+  .maskable img { width: 80vmin; height: 80vmin; }
+</style>
+<body>
+  <img src="../icons/icon.svg" alt="">
+  <script>if (location.search.includes('maskable')) document.body.className = 'maskable';</script>
+</body>
