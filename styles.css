@@ -545,7 +545,7 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
   flex-direction: column;
   align-items: center;
   justify-content: flex-start; /* ảnh đứng yên ở trên, tên dài chỉ kéo xuống dưới chứ không đẩy ảnh lên */
-  padding: calc(var(--cw) * .2) calc(var(--cw) * .085) calc(var(--cw) * .085);
+  padding: calc(var(--cw) * .23) calc(var(--cw) * .085) calc(var(--cw) * .085);
   text-align: center;
   overflow: hidden;
   isolation: isolate;
@@ -618,9 +618,9 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 /* Tim ở góc trên bên phải, ngang hàng chất bài góc trái */
 .face-hearts {
   position: absolute;
-  top: calc(var(--cw) * .09);
+  top: calc(var(--cw) * .081); /* giữa tim ngang giữa chất bài góc trái */
   right: calc(var(--cw) * .085);
-  font-size: max(8.5px, calc(var(--cw) * .07));
+  font-size: max(10.6px, calc(var(--cw) * .0875)); /* to hơn 25% so với .07 */
   line-height: 1;
   letter-spacing: .02em;
   white-space: nowrap;
@@ -1238,7 +1238,7 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 
 /* Tim bấm được trên lá */
 .rate-hearts { display: flex; justify-content: center; }
-.food-card .face-hearts { font-size: 11px; right: calc(var(--cw) * .07); }
+.food-card .face-hearts { font-size: 13.75px; right: calc(var(--cw) * .07); }
 .rate-hearts button {
   padding: 0 1px;
   border: 0;

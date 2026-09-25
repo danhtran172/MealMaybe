@@ -98,7 +98,7 @@
     current: null,
     rejected: null,
     autoPick: null, // khi đang chờ người chơi chọn lá: hàm chọn ngẫu nhiên giùm
-    cancelChoose: null, // huỷ bước chọn lá khi bấm Về bộ bài
+    cancelChoose: null, // huỷ bước chọn lá khi bấm Quay lại
   };
   const busy = () => ui.phase === 'spinning' || ui.phase === 'choosing';
 
@@ -686,7 +686,7 @@
     face.innerHTML = faceHTML(food);
   }
 
-  // Mỗi lượt xào có một số thứ tự; bấm "Về bộ bài" sẽ tăng số này và lượt cũ tự dừng ở bước chờ kế tiếp.
+  // Mỗi lượt xào có một số thứ tự; bấm "Quay lại" sẽ tăng số này và lượt cũ tự dừng ở bước chờ kế tiếp.
   const CANCEL = Symbol('cancel');
   let spinRun = 0;
 
@@ -795,28 +795,9 @@
     }
 
     if (manual) {
-      pick = await live(chooseCard(order, fanT));
+      pick = await live(chooseCard(order, fanT, live));
     } else if (!quick) {
-      // Ngón tay lướt qua các lá, chậm dần rồi dừng ở một lá
-      let i = rand(count);
-      let dir = rand(2) ? 1 : -1;
-      const steps = count + rand(Math.ceil(count / 2));
-      let prev = -1;
-      for (let s = 0; s < steps; s++) {
-        const t = s / (steps - 1);
-        const d = 45 + 180 * t ** 3;
-        if (prev >= 0) tween(order[prev].el, { transform: fanT(prev) }, { duration: d * 0.9 });
-        tween(order[i].el, { transform: fanT(i, 24) }, { duration: d * 0.9, easing: 'cubic-bezier(.3,.7,.3,1)' });
-        sfx.tick();
-        prev = i;
-        await live(sleep(d));
-        if (s < steps - 1) {
-          if (i + dir < 0 || i + dir >= count) dir = -dir;
-          i += dir;
-        }
-      }
-      pick = prev;
-      await live(sleep(160));
+      pick = await scanPick(order, fanT, live);
     }
 
     // Rút lá được chọn, lật mặt
@@ -844,8 +825,33 @@
     deck = [chosen];
   }
 
+  // Ngón tay lướt qua các lá, chậm dần rồi dừng ở một lá (chế độ Tự động và nút "Chọn ngẫu nhiên").
+  // start: lá đang được nhấc sẵn (người chơi đang rê tới) thì lướt tiếp từ lá đó.
+  async function scanPick(order, fanT, live, start = -1) {
+    const count = order.length;
+    let i = start >= 0 ? start : rand(count);
+    let dir = rand(2) ? 1 : -1;
+    const steps = count + rand(Math.ceil(count / 2));
+    let prev = -1;
+    for (let s = 0; s < steps; s++) {
+      const t = s / (steps - 1);
+      const d = 45 + 180 * t ** 3;
+      if (prev >= 0 && prev !== i) tween(order[prev].el, { transform: fanT(prev) }, { duration: d * 0.9 });
+      tween(order[i].el, { transform: fanT(i, 24) }, { duration: d * 0.9, easing: 'cubic-bezier(.3,.7,.3,1)' });
+      sfx.tick();
+      prev = i;
+      await live(sleep(d));
+      if (s < steps - 1) {
+        if (i + dir < 0 || i + dir >= count) dir = -dir;
+        i += dir;
+      }
+    }
+    await live(sleep(160));
+    return prev;
+  }
+
   // Người chơi tự rút: rê chuột / chạm / Tab / ← → để nhấc lá, bấm hoặc Enter để rút.
-  function chooseCard(order, fanT) {
+  function chooseCard(order, fanT, live) {
     const count = order.length;
     ui.phase = 'choosing';
     renderSpin();
@@ -895,9 +901,15 @@
       stage.addEventListener('focusin', onOver);
       stage.addEventListener('click', onClick);
       document.addEventListener('keydown', onKey);
+      // "Chọn ngẫu nhiên": lướt qua từng lá như chế độ Tự động rồi mới rút
       ui.autoPick = () => {
         talk.autoPicked = true;
-        done(rand(count));
+        const from = hi;
+        cleanup();
+        ui.phase = 'spinning';
+        renderSpin();
+        if (reduceMotion.matches) { resolve(rand(count)); return; }
+        scanPick(order, fanT, live, from).then(resolve, reject);
       };
       ui.cancelChoose = () => { cleanup(); reject(CANCEL); };
       const slow = setTimeout(() => quip('slowPick'), 9000);
@@ -1922,8 +1934,8 @@
     document.addEventListener(type, () => sfx.wake(), { capture: true, passive: true });
   }
 
-  // Về bộ bài & âm thanh
-  $('#backBtn').innerHTML = `${ICONS.back}<span>Về bộ bài</span>`;
+  // Quay lại & âm thanh
+  $('#backBtn').innerHTML = `${ICONS.back}<span>Quay lại</span>`;
   $('#backBtn').addEventListener('click', backToDeck);
   $('#soundBtn').addEventListener('click', () => {
     state.settings.sound = !state.settings.sound;

@@ -182,13 +182,13 @@ window.MEAL_QUIPS = {
       "Chốt rồi nha. Ăn không ngon đừng đổ thừa t.",
       "Xong. T đi nghỉ, cưng đi ăn.",
     ],
-    // Bấm "Về bộ bài" khi đang xào
+    // Bấm "Quay lại" khi đang xào
     backMid: [
       "Đang xào dở mà bỏ. T hơi tự ái rồi đó.",
       "Bỏ ngang? T chưa kịp khoe tay nghề.",
       "Xào chưa xong đã chạy. Làm gì cũng nửa vời vậy?",
     ],
-    // Bấm "Về bộ bài" sau khi bài đã lật
+    // Bấm "Quay lại" sau khi bài đã lật
     backReveal: [
       "Không rút bài khác mà trốn luôn. Khéo ghê.",
       "{name} bị bỏ rơi không một lời giải thích.",
