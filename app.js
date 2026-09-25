@@ -330,20 +330,43 @@
   // ---------- Âm thanh: tổng hợp bằng Web Audio, không cần file ----------
   const sfx = (() => {
     let ctx = null, out = null, noise = null;
-    const ready = () => ctx?.state === 'running' && state.settings.sound;
+    // Vẫn xếp lịch khi context đang tạm dừng: đồng hồ của nó đứng yên nên tiếng sẽ phát đúng nhịp ngay khi chạy lại
+    const ready = () => !!ctx && ctx.state !== 'closed' && state.settings.sound;
+
+    // iPhone/iPad (Safari 16.4+): mặc định Web Audio im khi gạt công tắc im lặng.
+    // "playback" cho app phát tiếng như app nghe nhạc; "auto" trả lại mặc định khi tắt loa.
+    function audioSession(type) {
+      try { if (navigator.audioSession) navigator.audioSession.type = type; } catch { /* trình duyệt không hỗ trợ */ }
+    }
 
     // Trình duyệt chỉ cho phát tiếng sau thao tác của người dùng: gọi hàm này trong sự kiện bấm
     function unlock() {
       if (!state.settings.sound) return;
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
-      ctx ??= new AC();
-      if (ctx.state === 'suspended') ctx.resume();
-      if (!noise) {
+      audioSession('playback');
+      if (!ctx) {
+        ctx = new AC();
         noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
         const d = noise.getChannelData(0);
         for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       }
+      wake();
+      // iOS đời cũ chỉ mở khoá âm thanh khi có một nguồn phát được start ngay trong thao tác chạm
+      const blip = ctx.createBufferSource();
+      blip.buffer = ctx.createBuffer(1, 1, 22050);
+      blip.connect(ctx.destination);
+      blip.start(0);
+    }
+
+    // Đánh thức context bị treo: "suspended" (chưa chạm lần nào) hoặc "interrupted"
+    // (iOS, sau khi khoá máy / chuyển app / có cuộc gọi). Tiếng đã hẹn trong lúc treo bị bỏ
+    // để khỏi phát dồn một lúc khi chạy lại.
+    function wake() {
+      if (!ctx || ctx.state === 'running' || ctx.state === 'closed' || !state.settings.sound) return;
+      out?.disconnect();
+      out = null;
+      ctx.resume().catch(() => { /* chưa có thao tác người dùng, thử lại ở lần chạm sau */ });
     }
     function bus() {
       if (!out) {
@@ -388,8 +411,16 @@
 
     return {
       unlock,
+      wake,
       // Cắt mọi tiếng đã hẹn giờ (khi huỷ lượt xào hoặc tắt tiếng)
       stop() { out?.disconnect(); out = null; },
+      // Tắt loa: dừng hẳn context và trả phiên âm thanh về mặc định để không chặn nhạc của app khác
+      mute() {
+        out?.disconnect();
+        out = null;
+        ctx?.suspend().catch(() => {});
+        audioSession('auto');
+      },
       snap: (at = 0, gain = 0.3) => burst({ at, gain, dur: 0.028, freq: 3000, q: 1.3 }),
       tick: (at = 0) => burst({ at, gain: 0.1, dur: 0.018, freq: 4200, q: 2 }),
       tap: (at = 0) => burst({ at, gain: 0.45, dur: 0.07, freq: 1100, q: 0.8 }),
@@ -1642,13 +1673,17 @@
     samplePersona();
   });
 
+  for (const type of ['touchend', 'click', 'keydown']) {
+    document.addEventListener(type, () => sfx.wake(), { capture: true, passive: true });
+  }
+
   // Về bộ bài & âm thanh
   $('#backBtn').innerHTML = `${ICONS.back}<span>Về bộ bài</span>`;
   $('#backBtn').addEventListener('click', backToDeck);
   $('#soundBtn').addEventListener('click', () => {
     state.settings.sound = !state.settings.sound;
     save();
-    if (state.settings.sound) { sfx.unlock(); sfx.tick(); } else { sfx.stop(); quip('muted', {}, 0.8); }
+    if (state.settings.sound) { sfx.unlock(); sfx.tick(); } else { sfx.mute(); quip('muted', {}, 0.8); }
     renderSpin();
   });
 
