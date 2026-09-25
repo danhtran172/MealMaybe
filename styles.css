@@ -891,9 +891,52 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 
 .food-list, .recent-list { list-style: none; margin: 0; padding: 0; }
 
-/* Nhóm theo (Thực đơn): cùng kiểu chip với hàng lọc loại món phía trên */
-.group-by { margin-top: 12px; }
-.group-by-label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 700; color: var(--ink-2); }
+/* Nhóm theo (Thực đơn): dropdown, nút mở là chip cùng kiểu hàng lọc, danh sách cùng kiểu panel */
+.group-by { display: flex; justify-content: flex-end; margin-top: 12px; }
+.dropdown { position: relative; }
+.dropdown-btn { gap: 6px; padding-right: 10px; }
+.dropdown-key { color: var(--ink-3); font-weight: 600; }
+.dropdown-key::after { content: "·"; margin-left: 6px; }
+.dropdown-btn svg { width: 16px; height: 16px; color: var(--ink-3); transition: transform .2s; }
+.dropdown-btn[aria-expanded="true"] { border-color: var(--ink-3); }
+.dropdown-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+.dropdown-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  min-width: 220px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 18px 40px -16px rgb(40 20 5 / .45);
+  transform-origin: top right;
+  animation: dropdown-in .16s cubic-bezier(.2, .9, .3, 1.1);
+}
+@keyframes dropdown-in { from { opacity: 0; transform: translateY(-4px) scale(.97); } }
+.dropdown-list [role="option"] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 10px;
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+.dropdown-list [role="option"]:hover,
+.dropdown-list [role="option"]:focus-visible { background: var(--surface-2); color: var(--ink); }
+.dropdown-list [role="option"]:focus-visible { box-shadow: inset 0 0 0 2px var(--tomato); }
+.dropdown-list [aria-selected="true"] { color: var(--ink); font-weight: 800; }
+.dropdown-emoji { width: 20px; text-align: center; }
+.dropdown-text { flex: 1; }
+.dropdown-list svg { width: 18px; height: 18px; color: var(--tomato); }
 .group-head {
   display: flex;
   align-items: center;
@@ -1481,5 +1524,5 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
   .fx, .fx::before, .fx::after { animation: none !important; }
   .sheet[open] { animation: none; }
   .stage.lit::after { animation: none; }
-  .stamp, .toast.show, .back-btn, .quip, .quip.out, .persona-sample { animation: none; }
+  .stamp, .toast.show, .back-btn, .quip, .quip.out, .persona-sample, .dropdown-list { animation: none; }
 }

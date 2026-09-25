@@ -103,8 +103,10 @@
           </div>
           <div class="chips small" id="menuChips" aria-label="Lọc thực đơn"></div>
           <div class="group-by">
-            <span class="group-by-label" id="groupLabel">Nhóm theo</span>
-            <div class="chips small" id="menuGroup" role="group" aria-labelledby="groupLabel"></div>
+            <div class="dropdown" id="groupPicker">
+              <button type="button" class="chip dropdown-btn" id="groupBtn" aria-haspopup="listbox" aria-expanded="false" aria-controls="groupList"></button>
+              <ul class="dropdown-list" id="groupList" role="listbox" aria-label="Nhóm theo" hidden></ul>
+            </div>
           </div>
           <ul class="food-list" id="foodList"></ul>
 

@@ -11,7 +11,7 @@ App chọn món ngẫu nhiên: xào bài, rút một lá, chốt món. HTML/CSS/
 ## Tính năng
 
 - Thực đơn: thêm/sửa/xoá món (tên, ảnh tự cắt vuông và nén còn ~20–25KB (320px, WebP; Safari dùng JPEG), loại: Món chính / Ăn vặt / Nước), xoá có Hoàn tác.
-- **Nhóm theo** (Thực đơn): Không nhóm, Loại món, Chay / Mặn, Ăn ngoài / Nấu ăn (Chỉ ăn ngoài · Chỉ nấu ăn · Cả hai). Khi đang lọc một loại (vd. tab Nước) thì không có lựa chọn Loại món. Lựa chọn được nhớ lại.
+- **Nhóm theo** (Thực đơn, dropdown dùng được bằng bàn phím ↑ ↓ Enter Esc): Không nhóm, Loại món, Chay / Mặn, Ăn ngoài / Nấu ăn (Chỉ ăn ngoài · Chỉ nấu ăn · Cả hai). Khi đang lọc một loại (vd. tab Nước) thì không có lựa chọn Loại món. Lựa chọn được nhớ lại.
 - **Số tim 1–5:** mỗi món có độ thích từ 1 đến 5 tim (chọn trong form hoặc bấm nhanh trên dòng món; món cũ mặc định 3 tim). Mặt lá bài hiện hàng tim thay cho tên loại món; loại món vẫn thấy qua ký hiệu ở góc lá và màu ô ảnh.
 - **Món chay:** đánh dấu 🥬 Chay cho món (trong form hoặc bấm nhanh trên dòng món; món mẫu không thịt/hải sản/trứng được đánh dấu sẵn). Nút **🥬 Chay** ở màn Quay chỉ xào món chay, kết hợp được với Ăn ngoài/Nấu ăn và bộ lọc loại món, và được nhớ qua các lần mở app. Lá chay có dấu 🌿 ở góc.
 - **Ăn ngoài / Nấu ăn:** mỗi món tick 🛵 Ăn ngoài, 🍳 Nấu ăn hoặc cả hai (trong form, hoặc bấm nhanh ngay trên dòng món). Màn Quay có công tắc chọn bộ bài; mỗi lần mở app mặc định là Ăn ngoài. Link nhanh: thêm `&mode=cook` (VD `index.html?spin=main&mode=cook`).

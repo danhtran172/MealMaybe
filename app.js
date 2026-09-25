@@ -32,7 +32,7 @@
   ];
   const EFFECTS = [['none', 'Không'], ['foil', 'Ánh kim'], ['shine', 'Vệt sáng'], ['glitter', 'Lấp lánh'], ['glow', 'Viền sáng']];
   const RECENT_MAX = 7;
-  const MENU_GROUPS = [['none', 'Không nhóm', ''], ['cat', 'Loại món', '🍽️'], ['veg', 'Chay / Mặn', '🥬'], ['where', 'Ăn ngoài / Nấu ăn', '🛵']];
+  const MENU_GROUPS = [['none', 'Không nhóm', '📋'], ['cat', 'Loại món', '🍽️'], ['veg', 'Chay / Mặn', '🥬'], ['where', 'Ăn ngoài / Nấu ăn', '🛵']];
   const HEARTS_MAX = 5;
   const HEARTS_DEFAULT = 3;
   const IDLE_DECK = 10;
@@ -68,6 +68,8 @@
     back: svg('<path d="M14.5 5.5 8 12l6.5 6.5"/>'),
     soundOn: svg('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>'),
     soundOff: svg('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="m16 9.5 5 5M21 9.5l-5 5"/>'),
+    chevron: svg('<path d="m6.5 9.5 5.5 5.5 5.5-5.5"/>'),
+    check: svg('<path d="m5 12.5 4.5 4.5L19 7.5"/>'),
     deck: svg('<path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.1-.9-1.6-.9-2.6 0-.9.8-1.6 1.7-1.6H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11.5" r="1.2"/><circle cx="10.5" cy="7.5" r="1.2"/><circle cx="15.2" cy="7.8" r="1.2"/>'),
   };
 
@@ -1197,9 +1199,7 @@
     // Nhóm theo: bỏ lựa chọn "Loại món" khi đang lọc một loại (vd. tab Nước thì mọi món đều là nước)
     const choices = MENU_GROUPS.filter(([id]) => id !== 'cat' || ui.menuFilter === 'all');
     const group = choices.some(([id]) => id === state.settings.menuGroup) ? state.settings.menuGroup : 'none';
-    // Chip cùng kiểu với hàng lọc loại món
-    $('#menuGroup').innerHTML = choices.map(([id, label, emoji]) => `
-      <button type="button" class="chip" data-group="${id}" aria-pressed="${id === group}">${emoji ? `<span aria-hidden="true">${emoji}</span>` : ''}${label}</button>`).join('');
+    renderGroupPicker(choices, group);
 
     const groups = menuGroups(items, group);
     $('#foodList').innerHTML = !items.length
@@ -1209,6 +1209,49 @@
           <li class="group-head"${g.cat ? ` data-cat="${g.cat}"` : ''}><span>${g.label}</span><small>${g.items.length}</small></li>
           ${g.items.map(row).join('')}`).join('')
         : items.map(row).join('');
+  }
+
+  // ---- Dropdown "Nhóm theo": nút kiểu chip + danh sách thả xuống (mẫu listbox, dùng được bằng bàn phím)
+  const groupBtn = $('#groupBtn');
+  const groupList = $('#groupList');
+
+  function renderGroupPicker(choices, group) {
+    const [, label, emoji] = MENU_GROUPS.find(([id]) => id === group);
+    groupBtn.innerHTML = `<span class="dropdown-key">Nhóm theo</span><span aria-hidden="true">${emoji}</span>${label}${ICONS.chevron}`;
+    groupBtn.setAttribute('aria-label', `Nhóm theo: ${label}`);
+    groupList.innerHTML = choices.map(([id, text, icon]) => `
+      <li role="option" id="group-${id}" data-group="${id}" aria-selected="${id === group}" tabindex="-1">
+        <span class="dropdown-emoji" aria-hidden="true">${icon}</span><span class="dropdown-text">${text}</span>${id === group ? ICONS.check : ''}
+      </li>`).join('');
+  }
+
+  const groupOptions = () => [...groupList.querySelectorAll('[role=option]')];
+
+  function openGroups() {
+    groupList.hidden = false;
+    groupBtn.setAttribute('aria-expanded', 'true');
+    (groupList.querySelector('[aria-selected=true]') ?? groupOptions()[0])?.focus();
+    document.addEventListener('pointerdown', outsideGroups, true);
+  }
+
+  function closeGroups(refocus = false) {
+    if (groupList.hidden) return;
+    groupList.hidden = true;
+    groupBtn.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('pointerdown', outsideGroups, true);
+    if (refocus) groupBtn.focus();
+  }
+
+  function outsideGroups(e) {
+    if (!$('#groupPicker').contains(e.target)) closeGroups();
+  }
+
+  function pickGroup(id) {
+    closeGroups(true);
+    if (id === state.settings.menuGroup) return;
+    state.settings.menuGroup = id;
+    save();
+    renderMenu();
   }
 
   // Chia món thành các nhóm có tiêu đề; "none" thì trả về null (danh sách phẳng)
@@ -1623,12 +1666,32 @@
     if (filter) setSpinFilter(filter);
   });
 
-  $('#menuGroup').addEventListener('click', e => {
-    const group = e.target.closest('[data-group]')?.dataset.group;
-    if (!group) return;
-    state.settings.menuGroup = group;
-    save();
-    renderMenu();
+  groupBtn.addEventListener('click', () => (groupList.hidden ? openGroups() : closeGroups()));
+  groupBtn.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      openGroups();
+    }
+  });
+  groupList.addEventListener('click', e => {
+    const id = e.target.closest('[data-group]')?.dataset.group;
+    if (id) pickGroup(id);
+  });
+  groupList.addEventListener('keydown', e => {
+    const opts = groupOptions();
+    const i = opts.indexOf(document.activeElement);
+    const go = k => { e.preventDefault(); opts[(k + opts.length) % opts.length].focus(); };
+    if (e.key === 'ArrowDown') go(i + 1);
+    else if (e.key === 'ArrowUp') go(i - 1);
+    else if (e.key === 'Home') go(0);
+    else if (e.key === 'End') go(opts.length - 1);
+    else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (i >= 0) pickGroup(opts[i].dataset.group);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      closeGroups(true);
+    } else if (e.key === 'Tab') closeGroups();
   });
 
   $('#menuChips').addEventListener('click', e => {
