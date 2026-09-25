@@ -97,7 +97,7 @@
     phase: 'idle', // idle | spinning | revealed | committed
     current: null,
     rejected: null,
-    autoPick: null, // khi đang chờ người chơi chọn lá: hàm để máy chọn giùm
+    autoPick: null, // khi đang chờ người chơi chọn lá: hàm chọn ngẫu nhiên giùm
     cancelChoose: null, // huỷ bước chọn lá khi bấm Về bộ bài
   };
   const busy = () => ui.phase === 'spinning' || ui.phase === 'choosing';
@@ -354,7 +354,7 @@
     } else if (ui.phase === 'choosing') {
       a.innerHTML = `
         <p class="choose-hint">Chọn một lá bài bạn ưng<small class="kbd-only"> · hoặc ← → rồi Enter</small></p>
-        <button type="button" class="btn ghost" data-act="autopick">Để máy chọn giùm</button>`;
+        <button type="button" class="btn ghost" data-act="autopick">Chọn ngẫu nhiên</button>`;
     } else if (ui.phase === 'revealed') {
       const others = pool.some(f => f.id !== ui.current.id);
       a.innerHTML = `

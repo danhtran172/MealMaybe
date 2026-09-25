@@ -86,7 +86,7 @@ window.MEAL_QUIPS = {
       "Bài chưa nóng tay đã bấm đổi. Nhanh nhảu dữ.",
       "Đọc tên món chưa vậy cưng? Hay bấm theo phản xạ?",
     ],
-    // Chế độ Tôi chọn nhưng bấm "Để máy chọn giùm"
+    // Chế độ Tôi chọn nhưng bấm "Chọn ngẫu nhiên"
     autoPick: [
       "Bật \"Tôi chọn\" rồi lại nhờ máy. Lười có hệ thống luôn.",
       "Tự chọn mà cũng nhờ. Mắc cười.",
@@ -395,7 +395,7 @@ window.MEAL_QUIPS = {
     ],
     slowPick: [
       "Cứ thong thả chọn nha, lá bài nào cũng có bất ngờ.",
-      "Chưa biết chọn bài nào hả? Bấm \"Để máy chọn giùm\" cũng được nè.",
+      "Chưa biết chọn bài nào hả? Bấm \"Chọn ngẫu nhiên\" cũng được nè.",
       "Nghe theo cảm giác đi, chọn một lá bài nào!",
     ],
     peek: [
