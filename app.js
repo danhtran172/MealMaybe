@@ -15,7 +15,7 @@
     { id: 'all', label: 'Tất cả', emoji: '🎴' },
     ...Object.entries(CATS).map(([id, c]) => ({ id, ...c })),
   ];
-  const DEFAULT_BACK = { color: '#D8452A', img: null, effect: 'none', emblem: 'M?', pattern: 'cross', patColor: 'auto', patAlpha: 0.24 };
+  const DEFAULT_BACK = { color: '#D8452A', img: null, effect: 'none', pattern: 'cross', patColor: 'auto', patAlpha: 0.24 };
   const PATTERNS = [
     ['cross', 'Caro chéo'], ['stripe', 'Sọc chéo'], ['gingham', 'Kẻ ô'], ['dots', 'Chấm bi'],
     ['diamond', 'Kim cương'], ['scale', 'Vảy cá'], ['rays', 'Tia nắng'], ['none', 'Trơn'],
@@ -178,7 +178,6 @@
         color: b.color === 'none' || /^#[0-9a-f]{6}$/i.test(b.color) ? b.color : DEFAULT_BACK.color,
         img: IMG_RE.test(b.img) ? b.img : null,
         effect: EFFECTS.some(([id]) => id === b.effect) ? b.effect : DEFAULT_BACK.effect,
-        emblem: typeof b.emblem === 'string' ? b.emblem.slice(0, 8) : DEFAULT_BACK.emblem,
         pattern: PATTERNS.some(([id]) => id === b.pattern) ? b.pattern : DEFAULT_BACK.pattern,
         patColor: b.patColor === 'none' || /^#[0-9a-f]{6}$/i.test(b.patColor) ? b.patColor : 'auto',
         patAlpha: Number.isFinite(b.patAlpha) ? Math.min(0.7, Math.max(0.08, b.patAlpha)) : DEFAULT_BACK.patAlpha,
@@ -1249,7 +1248,6 @@
 
   // ---------- Màn Custom bộ bài ----------
   const root = document.documentElement;
-  const emblemInput = $('#emblemInput');
 
   // ---- Màu: tiện ích nhỏ
   const hexToRgb = hex => { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
@@ -1332,8 +1330,6 @@
     root.style.setProperty('--pat-a', b.patColor === 'none' ? '0' : String(b.patAlpha));
     root.dataset.backPat = b.pattern;
     root.style.setProperty('--back-img', b.img ? `url("${b.img}")` : 'none');
-    root.style.setProperty('--emblem', JSON.stringify(b.emblem));
-    root.classList.toggle('no-emblem', !b.emblem);
     root.dataset.backFx = b.effect;
   }
 
@@ -1431,7 +1427,7 @@
       const sugg = patSuggestions().filter(it => !taken.has(it.value.toLowerCase()) && taken.add(it.value.toLowerCase()));
       const recent = recentItems().filter(it => !taken.has(it.value.toLowerCase()));
       return [
-        { value: 'auto', label: 'Tự động theo màu bộ bài', cls: 'auto', sw: tripleHex(autoHatch()) },
+        { value: 'auto', label: 'Auto (theo màu bộ bài)', cls: 'auto', sw: tripleHex(autoHatch()) },
         { value: 'none', label: 'Không màu', cls: 'none', sw: '#FFFFFF' },
         ...fixed,
         { sep: true },
@@ -1462,7 +1458,6 @@
     $('#patAlphaOut').textContent = `${patAlpha.value}%`;
     $('#patColorSet').disabled = b.pattern === 'none';
     for (const r of $('#fxPills').querySelectorAll('input')) r.checked = r.value === b.effect;
-    if (document.activeElement !== emblemInput) emblemInput.value = b.emblem;
     $('#quipToggle').checked = state.settings.quips;
     $('#personaSet').disabled = !state.settings.quips;
     $('#personaSample').disabled = !state.settings.quips;
@@ -1683,8 +1678,6 @@
   patAlpha.addEventListener('input', () => setBack({ patAlpha: patAlpha.value / 100 }, false));
   patAlpha.addEventListener('change', () => setBack({ patAlpha: patAlpha.value / 100 }));
   $('#fxPills').addEventListener('change', e => setBack({ effect: e.target.value }));
-  emblemInput.addEventListener('input', () => setBack({ emblem: emblemInput.value.trim() }, false));
-  emblemInput.addEventListener('change', () => setBack({ emblem: emblemInput.value.trim() }));
 
   const takeBackImage = async file => {
     const img = await readImage(file, BACK_IMG);
