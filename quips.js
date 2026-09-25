@@ -105,7 +105,50 @@ window.MEAL_QUIPS = {
         'Tự nấu {name}. Bếp nhà bạn đang run đó.',
         'Nấu {name} hả? Cháy là tại bạn, không phải tại bài nha.',
       ],
-      drink: [
+      // Đang bật chỉ món chay
+    veg: [
+      'Ăn chay hả? Bộ bài thanh tịnh theo luôn nè.',
+      '{name}, chay đó. Tu thì tu cho trót, đừng tối lại gọi gà rán.',
+      'Món chay. Bụng nhẹ, ví nhẹ, chỉ có quyết định là nặng.',
+      'Ăn chay mà còn kén. Phật cũng lắc đầu.',
+    ],
+    // Đánh dấu một món là chay (trong Thực đơn)
+    vegMark: [
+      '{name} giờ là món chay. Chắc chưa? Đừng để bộ bài phát hiện có thịt.',
+      'Gắn mác chay cho {name}. Bộ bài ghi nhận, nhưng vẫn nghi ngờ.',
+      '{name} chay từ hồi nào vậy? Thôi được, tin bạn lần này.',
+      '{name} lên chay. Nhớ đừng lén rưới mỡ hành nha.',
+    ],
+    // Bỏ nhãn chay của một món
+    vegUnmark: [
+      '{name} hết chay rồi. Lúc nãy ai nói chay vậy ta?',
+      'Bỏ mác chay cho {name}. Lộ ra có thịt rồi chứ gì.',
+      '{name} phá giới. Bộ bài biết ngay mà.',
+    ],
+    // Sửa nhãn chay 4 lần trong 20 giây
+    vegBulk: [
+      'Đánh dấu chay liên tục vậy, tính tu luôn hả?',
+      'Cả thực đơn lên chay. Bộ bài chuẩn bị ăn rau cả tuần.',
+      'Sửa nhãn chay tới tấp. Rằm tháng này chắc hoành tráng lắm.',
+    ],
+    // Bật nút Chay ở màn Quay ({n} = số lá còn lại)
+    vegOn: [
+      'Bật chay. Bộ bài đuổi hết thịt ra ngoài rồi đó.',
+      'Ăn chay hôm nay hả? Rằm hay giảm cân?',
+      'Chế độ chay. Còn {n} lá thôi, đừng có kén nữa nha.',
+    ],
+    // Tắt nút Chay
+    vegOff: [
+      'Tắt chay. Thịt ơi, bộ bài đón về nè.',
+      'Chay được bao lâu vậy? Thôi quay lại ăn mặn đi.',
+      'Hết chay rồi hả? Nhanh hơn bộ bài tưởng.',
+    ],
+    // Bật nút Chay nhưng không còn lá nào
+    vegEmpty: [
+      'Bật chay mà không có món chay nào. Ăn không khí hả?',
+      'Chay kiểu gì mà thực đơn trống trơn vậy? Đánh dấu vài món đi.',
+    ],
+    drink: [
         'Uống {name} cho no hả? Sáng tạo đó.',
         '{name}. Nước thôi mà cũng phải xào bài.',
         '{name} hả? Ly thứ mấy trong ngày rồi?',
@@ -273,6 +316,42 @@ window.MEAL_QUIPS = {
       '{name} tự nấu, nghe ấm cúng ghê.',
       'Vào bếp làm {name} thôi. Bộ bài cổ vũ nè!',
     ],
+    // Đang bật chỉ món chay
+    veg: [
+      '{name}, món chay nhẹ nhàng. Ăn ngon nha!',
+      'Hôm nay ăn chay, tốt cho sức khỏe ghê.',
+      'Một bữa chay thanh đạm, bụng sẽ cảm ơn bạn đó.',
+    ],
+    // Đánh dấu một món là chay (trong Thực đơn)
+    vegMark: [
+      'Đã đánh dấu {name} là món chay. Nhẹ bụng ghê!',
+      '{name} vào nhóm chay rồi nè. Hôm nào ăn chay có thêm lựa chọn.',
+      'Thêm {name} vào món chay. Bộ bài chay đông vui hơn rồi!',
+    ],
+    // Bỏ nhãn chay của một món
+    vegUnmark: [
+      'Đã bỏ nhãn chay của {name}. Cẩn thận vậy là tốt đó.',
+      '{name} không còn trong bộ bài chay nữa nha.',
+    ],
+    // Sửa nhãn chay 4 lần trong 20 giây
+    vegBulk: [
+      'Cập nhật món chay nhiều ghê, thực đơn gọn gàng hẳn!',
+      'Siêng quá, bộ bài chay giờ đầy đủ rồi nè.',
+    ],
+    // Bật nút Chay ở màn Quay ({n} = số lá còn lại)
+    vegOn: [
+      'Bật chế độ chay rồi nè. Còn {n} lá để chọn.',
+      'Ăn chay hôm nay, nhẹ nhàng thanh tịnh nha.',
+    ],
+    // Tắt nút Chay
+    vegOff: [
+      'Tắt chế độ chay, bộ bài đầy đủ món lại rồi nè.',
+      'Quay lại tất cả món nha, nhiều lựa chọn hơn.',
+    ],
+    // Bật nút Chay nhưng không còn lá nào
+    vegEmpty: [
+      'Chưa có món chay nào ở đây. Đánh dấu vài món chay trong Thực đơn nha.',
+    ],
     drink: [
       '{name} nè, uống cho mát nha.',
       'Một ly {name} cho tỉnh táo. Nhớ ăn thêm gì nữa nha.',
@@ -421,6 +500,42 @@ window.MEAL_QUIPS = {
       'Nấu {name}? Tay nghề như bạn thì mở nhà hàng được luôn đó.',
       'Bạn tự nấu {name} thì chắc chắn ngon hơn đầu bếp 5 sao.',
       'Vào bếp làm {name}, bếp nhà bạn có phước ghê.',
+    ],
+    // Đang bật chỉ món chay
+    veg: [
+      'Ăn chay, tâm sáng như bạn thì món gì cũng thành cao lương mỹ vị.',
+      '{name} chay. Bạn đúng là người sống đẹp.',
+      'Người biết ăn chay là người biết thương mình. Như bạn đó.',
+    ],
+    // Đánh dấu một món là chay (trong Thực đơn)
+    vegMark: [
+      '{name} là món chay, bạn phân loại tinh tế quá.',
+      'Đánh dấu chay cho {name}, đúng là người chu đáo.',
+      'Nhờ bạn mà {name} được lên chay, món này có phước ghê.',
+    ],
+    // Bỏ nhãn chay của một món
+    vegUnmark: [
+      'Bạn phát hiện {name} không chay, mắt tinh thật.',
+      'Sửa nhãn cho {name}, bạn kỹ tính theo kiểu đáng yêu.',
+    ],
+    // Sửa nhãn chay 4 lần trong 20 giây
+    vegBulk: [
+      'Bạn sắp xếp thực đơn chuyên nghiệp như bếp trưởng.',
+      'Chăm chút từng món vậy, thực đơn này hạnh phúc lắm.',
+    ],
+    // Bật nút Chay ở màn Quay ({n} = số lá còn lại)
+    vegOn: [
+      'Bạn chọn ăn chay, tâm hồn đẹp y như con người bạn.',
+      'Chế độ chay cho người sống xanh như bạn. Còn {n} lá.',
+    ],
+    // Tắt nút Chay
+    vegOff: [
+      'Bạn linh hoạt thật, chay mặn gì cũng hợp.',
+      'Tắt chay. Người biết cân bằng như bạn hiếm lắm.',
+    ],
+    // Bật nút Chay nhưng không còn lá nào
+    vegEmpty: [
+      'Bạn đi trước thời đại, thực đơn chưa kịp có món chay theo bạn.',
     ],
     drink: [
       '{name}, thức uống xứng với người thanh lịch như bạn.',

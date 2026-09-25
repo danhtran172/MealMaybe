@@ -32,6 +32,7 @@
   ];
   const EFFECTS = [['none', 'Không'], ['foil', 'Ánh kim'], ['shine', 'Vệt sáng'], ['glitter', 'Lấp lánh'], ['glow', 'Viền sáng']];
   const RECENT_MAX = 7;
+  const MENU_GROUPS = [['none', 'Không nhóm', ''], ['cat', 'Loại món', '🍽️'], ['veg', 'Chay / Mặn', '🥬'], ['where', 'Ăn ngoài / Nấu ăn', '🛵']];
   const HEARTS_MAX = 5;
   const HEARTS_DEFAULT = 3;
   const IDLE_DECK = 10;
@@ -52,6 +53,8 @@
     ['Sinh tố bơ', 'drink', '🥑', 'oc'], ['Trà chanh', 'drink', '🍋', 'oc'],
   ];
   const SEED_WHERE = new Map(SEED.map(([name, , , w]) => [name, w]));
+  // Món mẫu không có thịt, hải sản hay trứng
+  const SEED_VEG = new Set(['Chè Thái', 'Trà sữa trân châu', 'Cà phê sữa đá', 'Nước mía', 'Sinh tố bơ', 'Trà chanh']);
 
   const svg = body => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
   const ICONS = {
@@ -130,7 +133,7 @@
       applyData(data);
     } else {
       state.foods = SEED.map(([name, cat, emoji, w]) => ({
-        id: uid(), name, cat, emoji, img: null, at: Date.now(), out: w.includes('o'), cook: w.includes('c'), hearts: HEARTS_DEFAULT,
+        id: uid(), name, cat, emoji, img: null, at: Date.now(), out: w.includes('o'), cook: w.includes('c'), hearts: HEARTS_DEFAULT, veg: SEED_VEG.has(name),
       }));
       state.settings = normalizeSettings();
       save();
@@ -156,6 +159,8 @@
       food = { ...food, out: w.includes('o'), cook: w.includes('c') };
     }
     if (!(Number.isInteger(f.hearts) && f.hearts >= 1 && f.hearts <= HEARTS_MAX)) food = { ...food, hearts: HEARTS_DEFAULT };
+    // Món từ bản cũ chưa có cờ chay: món mẫu lấy theo SEED_VEG, món tự thêm coi là không chay
+    if (typeof f.veg !== 'boolean') food = { ...food, veg: SEED_VEG.has(f.name) };
     return food;
   }
 
@@ -170,6 +175,8 @@
     return {
       drawMode: s?.drawMode === 'manual' ? 'manual' : 'auto',
       sound: s?.sound !== false,
+      vegOnly: s?.vegOnly === true, // chỉ xào món chay; nhớ qua các lần mở app
+      menuGroup: MENU_GROUPS.some(([id]) => id === s?.menuGroup) ? s.menuGroup : 'none', // nhóm danh sách Thực đơn
       quips: s?.quips !== false,
       // Màu tự chọn gần đây, dùng chung cho màu bộ bài và màu vân
       recentColors: (Array.isArray(s?.recentColors) ? s.recentColors : []).filter(c => /^#[0-9a-f]{6}$/i.test(c)).slice(0, RECENT_COLORS),
@@ -200,7 +207,7 @@
   const restingIds = (mode = ui.mode) => new Set(recentOf(mode).map(r => r.foodId));
   const inFilter = (f, filter) => filter === 'all' || f.cat === filter;
   const inMode = (f, mode = ui.mode) => !!f[mode];
-  const deckFoods = () => state.foods.filter(f => inMode(f) && inFilter(f, ui.spinFilter));
+  const deckFoods = () => state.foods.filter(f => inMode(f) && inFilter(f, ui.spinFilter) && (!state.settings.vegOnly || f.veg));
   const foodOf = r => state.foods.find(f => f.id === r.foodId);
   const nameOf = r => foodOf(r)?.name ?? r.name;
   function spinPool() {
@@ -237,6 +244,7 @@
 
   // ---------- Điều hướng ----------
   function setView(view) {
+    if (view !== ui.view) hideQuip();
     ui.view = view;
     for (const id of ['spin', 'menu', 'recent', 'deck']) $(`#view-${id}`).hidden = id !== view;
     renderTabs();
@@ -289,15 +297,21 @@
     const pool = spinPool();
     const resting = inCat.length - pool.length;
     const label = ui.spinFilter === 'all' ? '' : ` ${CATS[ui.spinFilter].label.toLowerCase()}`;
-    const kind = ui.mode === 'cook' ? 'nấu' : 'ăn ngoài';
+    const veg = state.settings.vegOnly;
+    const kind = `${veg ? 'chay ' : ''}${ui.mode === 'cook' ? 'nấu' : 'ăn ngoài'}`;
+    const vegBtn = $('#vegBtn');
+    vegBtn.setAttribute('aria-pressed', String(veg));
+    vegBtn.title = veg ? 'Đang chỉ xào món chay, bấm để xào tất cả' : 'Chỉ xào món chay';
 
     let note;
     if (!inCat.length) {
-      note = `Chưa có món ${kind}${label} nào. Tick “${MODES[ui.mode].label}” cho món trong Thực đơn nhé.`;
+      note = veg
+        ? `Chưa có món ${kind}${label} nào. Tick “Chay” cho món trong Thực đơn, hoặc tắt nút Chay.`
+        : `Chưa có món ${kind}${label} nào. Tick “${MODES[ui.mode].label}” cho món trong Thực đơn nhé.`;
     } else if (!pool.length) {
       note = `Cả ${inCat.length} món ${kind}${label} đều mới ${ui.mode === 'cook' ? 'nấu' : 'ăn'} gần đây. Bỏ bớt ở mục Gần đây để quay tiếp.`;
     }
-    else note = `<b>${pool.length}</b> lá trong bộ bài${resting ? ` · ${resting} món đang nghỉ vì mới ${ui.mode === 'cook' ? 'nấu' : 'ăn'}` : ''}`;
+    else note = `<b>${pool.length}</b> lá${veg ? ' chay' : ''} trong bộ bài${resting ? ` · ${resting} món đang nghỉ vì mới ${ui.mode === 'cook' ? 'nấu' : 'ăn'}` : ''}`;
     $('#poolNote').innerHTML = note;
 
     const showingCard = ui.phase === 'revealed' || ui.phase === 'committed';
@@ -446,16 +460,20 @@
   // Trạng thái trong phiên: số lá đã rút mà chưa chốt, món vừa ra, số lần gặp từng món...
   const talk = {
     streak: 0, lastFood: null, seen: new Map(), lastCommitAt: 0, lastLine: '',
-    spins: 0, revealAt: 0, peeks: 0, peekTold: 0, modeFlips: [], filterFlips: [], autoPicked: false, edgePicked: false,
+    spins: 0, revealAt: 0, peeks: 0, peekTold: 0, modeFlips: [], filterFlips: [], vegEdits: [], autoPicked: false, edgePicked: false,
   };
-  const quipEl = $('#quip');
+  // Bong bóng lời bình: trên sân khấu ở màn Quay, nổi phía trên thanh tab ở các màn khác
+  const quipStage = $('#quip');
+  const quipFloat = $('#quipFloat');
+  let quipEl = quipStage;
   let quipTimer = 0;
 
   function hideQuip() {
     clearTimeout(quipTimer);
     if (quipEl.hidden) return;
-    quipEl.classList.add('out');
-    quipTimer = setTimeout(() => { quipEl.hidden = true; quipEl.classList.remove('out'); }, 200);
+    const el = quipEl;
+    el.classList.add('out');
+    quipTimer = setTimeout(() => { el.hidden = true; el.classList.remove('out'); }, 200);
   }
 
   // Nói một câu trong nhóm `key` (với xác suất `chance`); trả về true nếu đã nói
@@ -469,6 +487,9 @@
     talk.lastLine = line;
     const text = line.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
     clearTimeout(quipTimer);
+    const target = ui.view === 'spin' ? quipStage : quipFloat;
+    if (target !== quipEl) quipEl.hidden = true;
+    quipEl = target;
     quipEl.textContent = text;
     quipEl.classList.remove('out');
     quipEl.hidden = false;
@@ -521,10 +542,17 @@
     if (poolSize <= 2 && quip('small', { n: poolSize }, 0.7)) return;
     if (food.hearts === 5 && quip('five', v, 0.5)) return;
     if (food.hearts === 1 && quip('one', v, 0.6)) return;
+    if (state.settings.vegOnly && quip('veg', v, 0.3)) return;
     if (ui.mode === 'cook' && quip('cook', v, 0.25)) return;
     if (food.cat === 'drink' && quip('drink', v, 0.25)) return;
     if (h >= 5 && h < 10 && quip('morning', v, 0.25)) return;
     quip('generic', v, 0.25);
+  }
+
+  // Cập nhật nhãn chay của một món: sửa dồn dập thì nói một câu chung
+  function quipOnVegEdit(name, nowVeg) {
+    if (flipped(talk.vegEdits, 4)) return quip('vegBulk');
+    return quip(nowVeg ? 'vegMark' : 'vegUnmark', { name }, 0.75);
   }
 
   function quipOnCommit(food) {
@@ -607,7 +635,7 @@
       ? `<img src="${esc(food.img)}" alt="">`
       : `<span class="face-emoji">${esc(food.emoji || cat.emoji)}</span>`;
     return `
-      <span class="pip pip-tl">${cat.emoji}</span>
+      <span class="pip pip-tl">${cat.emoji}</span>${food.veg ? '<span class="veg-mark" title="Món chay" aria-label="Món chay">🌿</span>' : ''}
       <div class="face-art">${art}</div>
       <div class="face-name">${esc(food.name)}</div>
       ${heartsHTML(food.hearts)}
@@ -940,6 +968,26 @@
     if (flipped(talk.filterFlips, 4)) quip('flipFilter');
   }
 
+  function setVeg(on) {
+    if (busy() || on === state.settings.vegOnly) return;
+    state.settings.vegOnly = on;
+    save();
+    ui.rejected = null;
+    if (ui.phase !== 'idle') {
+      ui.phase = 'idle';
+      ui.current = null;
+      resetDeck();
+    }
+    renderSpin();
+    const left = spinPool().length;
+    announce(on ? `Chỉ món chay: ${left} lá trong bộ bài.` : `Tất cả món: ${left} lá trong bộ bài.`);
+    hideQuip(); // câu cũ (vd. "đã bật chay") không còn đúng nữa
+    if (flipped(talk.filterFlips, 4)) quip('flipFilter');
+    else if (on && !left) quip('vegEmpty');
+    else if (on) quip('vegOn', { n: left }, 0.75);
+    else quip('vegOff', {}, 0.6);
+  }
+
   function setMode(mode) {
     if (busy() || mode === ui.mode || !MODES[mode]) return;
     ui.mode = mode;
@@ -976,6 +1024,7 @@
   };
   heartPick.addEventListener('change', e => setFormHearts(Number(e.target.value)));
   setFormHearts(HEARTS_DEFAULT);
+  const setFormVeg = on => { form.elements.veg.checked = on; };
   const setFormWhere = (out, cook) => {
     form.elements.out.checked = out;
     form.elements.cook.checked = cook;
@@ -995,6 +1044,7 @@
     imgInput.value = '';
     showPreview(null);
     setFormWhere(true, false);
+    setFormVeg(false);
     setFormHearts(HEARTS_DEFAULT);
     $('#formTitle').textContent = 'Thêm món';
     $('#submitBtn').textContent = 'Thêm vào thực đơn';
@@ -1009,6 +1059,7 @@
     nameInput.value = f.name;
     setFormCat(f.cat);
     setFormWhere(f.out, f.cook);
+    setFormVeg(f.veg);
     setFormHearts(f.hearts);
     showPreview(f.img);
     $('#formTitle').textContent = 'Sửa món';
@@ -1118,6 +1169,8 @@
     const items = state.foods.filter(f => inFilter(f, ui.menuFilter));
     const toggle = (f, mode) => `
       <button type="button" class="where-tog" data-act="tog-${mode}" aria-pressed="${f[mode]}" title="${f[mode] ? 'Bỏ' : 'Thêm vào'} bộ bài ${MODES[mode].label.toLowerCase()}">${MODES[mode].emoji} ${mode === 'out' ? 'Ngoài' : 'Nấu'}</button>`;
+    const vegTog = f => `
+      <button type="button" class="where-tog veg-tog" data-act="tog-veg" aria-pressed="${!!f.veg}" title="${f.veg ? 'Bỏ nhãn' : 'Đánh dấu'} món chay">🥬 Chay</button>`;
     const rate = f => `
       <span class="rate" role="group" aria-label="Số tim của ${esc(f.name)}">${Array.from({ length: HEARTS_MAX }, (_, i) => `<button type="button" class="${i < f.hearts ? 'on' : ''}" data-act="rate" data-n="${i + 1}" aria-label="${i + 1} tim" aria-pressed="${i + 1 === f.hearts}">♥</button>`).join('')}</span>`;
     const restNote = f => {
@@ -1125,7 +1178,7 @@
       if (!where.length) return '';
       return `<span class="resting">Đang nghỉ${where.length === 2 ? '' : ` · ${where[0] === 'out' ? 'ăn ngoài' : 'nấu'}`}</span>`;
     };
-    $('#foodList').innerHTML = items.length ? items.map(f => `
+    const row = f => `
       <li class="food${ui.editingId === f.id ? ' editing' : ''}" data-id="${f.id}">
         ${thumbHTML(f)}
         <div class="food-main">
@@ -1133,13 +1186,50 @@
           <div class="food-meta">
             <span class="tag" data-cat="${f.cat}">${CATS[f.cat].label}</span>
             ${rate(f)}
-            ${toggle(f, 'out')}${toggle(f, 'cook')}
+            ${toggle(f, 'out')}${toggle(f, 'cook')}${vegTog(f)}
             ${restNote(f)}
           </div>
         </div>
         <button type="button" class="icon-btn" data-act="edit" aria-label="Sửa ${esc(f.name)}" title="Sửa">${ICONS.edit}</button>
         <button type="button" class="icon-btn danger" data-act="del" aria-label="Xoá ${esc(f.name)}" title="Xoá">${ICONS.trash}</button>
-      </li>`).join('') : '<li class="empty-note">Chưa có món nào ở mục này.</li>';
+      </li>`;
+
+    // Nhóm theo: bỏ lựa chọn "Loại món" khi đang lọc một loại (vd. tab Nước thì mọi món đều là nước)
+    const choices = MENU_GROUPS.filter(([id]) => id !== 'cat' || ui.menuFilter === 'all');
+    const group = choices.some(([id]) => id === state.settings.menuGroup) ? state.settings.menuGroup : 'none';
+    // Chip cùng kiểu với hàng lọc loại món
+    $('#menuGroup').innerHTML = choices.map(([id, label, emoji]) => `
+      <button type="button" class="chip" data-group="${id}" aria-pressed="${id === group}">${emoji ? `<span aria-hidden="true">${emoji}</span>` : ''}${label}</button>`).join('');
+
+    const groups = menuGroups(items, group);
+    $('#foodList').innerHTML = !items.length
+      ? '<li class="empty-note">Chưa có món nào ở mục này.</li>'
+      : groups
+        ? groups.filter(g => g.items.length).map(g => `
+          <li class="group-head"${g.cat ? ` data-cat="${g.cat}"` : ''}><span>${g.label}</span><small>${g.items.length}</small></li>
+          ${g.items.map(row).join('')}`).join('')
+        : items.map(row).join('');
+  }
+
+  // Chia món thành các nhóm có tiêu đề; "none" thì trả về null (danh sách phẳng)
+  function menuGroups(items, by) {
+    if (by === 'cat') {
+      return Object.entries(CATS).map(([id, c]) => ({ label: `${c.emoji} ${c.label}`, cat: id, items: items.filter(f => f.cat === id) }));
+    }
+    if (by === 'veg') {
+      return [
+        { label: '🥬 Món chay', items: items.filter(f => f.veg) },
+        { label: '🍖 Món mặn', items: items.filter(f => !f.veg) },
+      ];
+    }
+    if (by === 'where') {
+      return [
+        { label: '🛵 Chỉ ăn ngoài', items: items.filter(f => f.out && !f.cook) },
+        { label: '🍳 Chỉ nấu ăn', items: items.filter(f => f.cook && !f.out) },
+        { label: '🛵🍳 Cả hai', items: items.filter(f => f.out && f.cook) },
+      ];
+    }
+    return null;
   }
 
   function toggleWhere(id, mode) {
@@ -1154,6 +1244,16 @@
     if (ui.editingId === id) form.elements[mode].checked = !f[mode];
     save();
     renderAll();
+  }
+
+  function toggleVeg(id) {
+    const f = state.foods.find(x => x.id === id);
+    if (!f) return;
+    state.foods = state.foods.map(x => x.id === id ? { ...x, veg: !x.veg } : x);
+    if (ui.editingId === id) setFormVeg(!f.veg);
+    save();
+    renderAll();
+    quipOnVegEdit(f.name, !f.veg);
   }
 
   function rateFood(id, n) {
@@ -1265,7 +1365,7 @@
     const pool = inCat.filter(f => !rest.has(f.id));
     const resting = inCat.filter(f => rest.has(f.id));
     const mini = (f, cls = '') => `<div class="card-face mini-face${cls}" data-cat="${f.cat}">${faceHTML(f)}</div>`;
-    $('#deckTitle').textContent = [`Bộ bài ${MODES[ui.mode].label.toLowerCase()}`, ui.spinFilter === 'all' ? '' : CATS[ui.spinFilter].label].filter(Boolean).join(' · ');
+    $('#deckTitle').textContent = [`Bộ bài ${MODES[ui.mode].label.toLowerCase()}`, state.settings.vegOnly ? 'Chay' : '', ui.spinFilter === 'all' ? '' : CATS[ui.spinFilter].label].filter(Boolean).join(' · ');
     $('#deckSub').innerHTML = pool.length
       ? `<b>${pool.length}</b> lá có thể rút trúng${resting.length ? ` · ${resting.length} lá đang nghỉ` : ''}`
       : 'Chưa có lá nào để xào.';
@@ -1516,10 +1616,19 @@
   });
 
   $('#whereSeg').addEventListener('change', e => setMode(e.target.value));
+  $('#vegBtn').addEventListener('click', () => setVeg(!state.settings.vegOnly));
 
   $('#spinChips').addEventListener('click', e => {
     const filter = e.target.closest('[data-filter]')?.dataset.filter;
     if (filter) setSpinFilter(filter);
+  });
+
+  $('#menuGroup').addEventListener('click', e => {
+    const group = e.target.closest('[data-group]')?.dataset.group;
+    if (!group) return;
+    state.settings.menuGroup = group;
+    save();
+    renderMenu();
   });
 
   $('#menuChips').addEventListener('click', e => {
@@ -1551,6 +1660,7 @@
       if (!ui.editingId) {
         if (ui.spinFilter !== 'all') setFormCat(ui.spinFilter);
         setFormWhere(ui.mode === 'out', ui.mode === 'cook');
+        setFormVeg(state.settings.vegOnly);
       }
       nameInput.focus();
     } else if (act === 'goto-recent') {
@@ -1588,6 +1698,7 @@
     const cat = form.elements.cat.value;
     const out = form.elements.out.checked;
     const cook = form.elements.cook.checked;
+    const veg = form.elements.veg.checked;
     const hearts = Number(form.elements.hearts.value) || HEARTS_DEFAULT;
     if (!out && !cook) {
       toast('Chọn ít nhất một: Ăn ngoài hoặc Nấu ăn.');
@@ -1600,18 +1711,22 @@
       nameInput.select();
       return;
     }
+    const before = ui.editingId ? state.foods.find(f => f.id === ui.editingId) : null;
+    const vegChanged = before ? !!before.veg !== veg : veg;
     if (ui.editingId) {
       state.foods = state.foods.map(f => f.id !== ui.editingId ? f : {
-        ...f, name, cat, out, cook, hearts, img: ui.pendingImg === undefined ? f.img : ui.pendingImg,
+        ...f, name, cat, out, cook, veg, hearts, img: ui.pendingImg === undefined ? f.img : ui.pendingImg,
       });
       toast(`Đã lưu ${name}`);
     } else {
-      state.foods = [{ id: uid(), name, cat, emoji: null, img: ui.pendingImg ?? null, at: Date.now(), out, cook, hearts }, ...state.foods];
+      state.foods = [{ id: uid(), name, cat, emoji: null, img: ui.pendingImg ?? null, at: Date.now(), out, cook, veg, hearts }, ...state.foods];
       toast(`Đã thêm ${name} vào thực đơn`);
     }
+    if (vegChanged) quipOnVegEdit(name, veg);
     resetForm();
     setFormCat(cat);
     setFormWhere(out, cook); // thêm liên tiếp nhiều món cùng kiểu cho nhanh
+    setFormVeg(veg);
     save();
     askPersist();
     renderAll();
@@ -1626,6 +1741,7 @@
     else if (btn.dataset.act === 'del') removeFood(id);
     else if (btn.dataset.act === 'tog-out') toggleWhere(id, 'out');
     else if (btn.dataset.act === 'tog-cook') toggleWhere(id, 'cook');
+    else if (btn.dataset.act === 'tog-veg') toggleVeg(id);
     else if (btn.dataset.act === 'rate') rateFood(id, Number(btn.dataset.n));
   });
 

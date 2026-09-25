@@ -37,6 +37,7 @@
         </div>
         <div class="chips" id="spinChips" aria-label="Loại món để quay"></div>
         <div class="spin-tools" id="spinTools">
+          <button type="button" class="tool-btn veg-btn" id="vegBtn" aria-pressed="false"><span aria-hidden="true">🥬</span> Chay</button>
           <button type="button" class="tool-btn" id="peekBtn"></button>
           <div class="mini-seg" id="modeSeg" role="radiogroup" aria-label="Cách rút bài">
             <label><input type="radio" name="drawMode" value="auto"><span>Máy rút</span></label>
@@ -88,6 +89,10 @@
             <label><input type="checkbox" name="out" checked><span>🛵 Ăn ngoài</span></label>
             <label><input type="checkbox" name="cook"><span>🍳 Nấu ăn</span></label>
           </div>
+          <div class="where-pick veg-pick" role="group" aria-label="Món chay">
+            <span class="where-label">Chế độ ăn</span>
+            <label><input type="checkbox" name="veg"><span>🥬 Món chay</span></label>
+          </div>
           <button class="btn primary" type="submit" id="submitBtn">Thêm vào thực đơn</button>
         </form>
 
@@ -97,6 +102,10 @@
             <span class="muted" id="menuCount"></span>
           </div>
           <div class="chips small" id="menuChips" aria-label="Lọc thực đơn"></div>
+          <div class="group-by">
+            <span class="group-by-label" id="groupLabel">Nhóm theo</span>
+            <div class="chips small" id="menuGroup" role="group" aria-labelledby="groupLabel"></div>
+          </div>
           <ul class="food-list" id="foodList"></ul>
 
           <section class="data-box" aria-labelledby="dataTitle">
@@ -243,6 +252,7 @@
     </div>
   </dialog>
 
+  <p class="quip quip-float" id="quipFloat" role="status" title="Bấm để tắt" hidden></p>
   <div class="toast" id="toast" role="status" hidden></div>
 
   <script src="quips.js"></script>
