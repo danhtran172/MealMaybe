@@ -32,7 +32,7 @@
     ['sassy', '😏', 'Cá tính'], ['friendly', '😊', 'Thân thiện'], ['flatter', '🥰', 'Xu nịnh'], ['grumpy', '😤', 'Tánh cọc'], ['poet', '📜', 'Thi sĩ'],
   ];
   // "foil" hiển thị là Cầu vồng (giữ id cũ để không mất lựa chọn đã lưu)
-  const EFFECTS = [['none', 'Không'], ['foil', 'Cầu vồng'], ['shine', 'Vệt sáng'], ['glitter', 'Lấp lánh'], ['glow', 'Viền sáng']];
+  const EFFECTS = [['none', 'Không'], ['foil', 'Cầu vồng'], ['shine', 'Vệt sáng'], ['glitter', 'Lấp lánh'], ['glow', 'Viền sáng'], ['emboss', 'Dập nổi'], ['daytime', 'Theo giờ']];
   const RECENT_MAX = 7;
   // Bốc nhanh: danh sách gõ tay (mỗi dòng một món), không thuộc Thực đơn, không ghi vào Gần đây
   const QUICK_MIN = 2; // cần ít nhất 2 món mới xào được
@@ -882,7 +882,7 @@
     return `
       <span class="pip pip-tl">${suit(food.cat)}</span>
       <div class="face-art">${art}${food.veg ? '<span class="veg-mark" role="img" aria-label="Món chay" title="Món chay"><i class="veg-icon"></i></span>' : ''}</div>
-      <div class="face-name">${esc(food.name)}</div>
+      <div class="face-name"><span><i class="name-gap l" aria-hidden="true"></i><i class="name-gap r" aria-hidden="true"></i>${esc(food.name)}</span></div>
       ${food.quick ? '' : rate ? rateHTML(food) : heartsHTML(food.hearts)}
       <span class="pip pip-br">${suit(food.cat)}</span>`;
   }
@@ -1838,6 +1838,15 @@
     root.dataset.backFx = b.effect;
     root.classList.toggle('back-light', light); // hiệu ứng đổi cách hoà màu / màu tia sáng trên nền sáng
   }
+
+  // Hiệu ứng "Theo giờ": ánh sáng trên lưng bài theo buổi trong ngày (CSS đọc data-daypart)
+  const DAYPARTS = [[5, 'morning'], [10, 'noon'], [15, 'afternoon'], [18, 'evening'], [22, 'night']];
+  function setDaypart() {
+    const h = new Date().getHours();
+    root.dataset.daypart = DAYPARTS.reduce((part, [from, id]) => h >= from ? id : part, 'night');
+  }
+  setDaypart();
+  setInterval(setDaypart, 5 * 60e3);
 
   function setBack(patch, persist = true) {
     Object.assign(state.settings.back, patch);

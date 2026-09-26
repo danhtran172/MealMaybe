@@ -547,6 +547,84 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 }
 @keyframes glow-breathe { from { opacity: .35; } to { opacity: 1; } }
 
+/* Dập nổi: vân bài và khung gồ lên như giấy dập (mép sáng phía trên-trái, bóng phía dưới-phải, theo đúng
+   hình vân nhờ drop-shadow), thêm một dải sáng dịu quét chậm từ trên xuống làm vân nổi lên rồi chìm */
+[data-back-fx="emboss"] .card-back::before {
+  filter:
+    drop-shadow(calc(-1 * var(--u)) calc(-1 * var(--u)) 0 rgb(255 255 255 / .6))
+    drop-shadow(calc(1.3 * var(--u)) calc(1.3 * var(--u)) calc(.8 * var(--u)) rgb(0 0 0 / .85));
+}
+.back-light[data-back-fx="emboss"] .card-back::before {
+  filter:
+    drop-shadow(calc(-1 * var(--u)) calc(-1 * var(--u)) 0 rgb(255 255 255 / 1))
+    drop-shadow(calc(1.3 * var(--u)) calc(1.3 * var(--u)) calc(.8 * var(--u)) rgb(90 55 20 / .8));
+}
+[data-back-fx="emboss"] .fx::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -70%;
+  height: 70%;
+  background: linear-gradient(180deg,
+    transparent, rgb(0 0 0 / .08) 25%, transparent 40%,
+    rgb(255 255 255 / .16) 55%, rgb(255 255 255 / .26) 62%, rgb(255 255 255 / .16) 69%, transparent 85%);
+  animation: emboss-sweep 5.2s ease-in-out infinite;
+  animation-delay: calc(var(--k, 0) * -.3s);
+}
+@keyframes emboss-sweep { 0% { transform: translateY(0); } 70%, 100% { transform: translateY(245%); } }
+
+/* Theo giờ: ánh sáng trên lưng bài đổi theo buổi (JS đặt data-daypart trên <html>, cập nhật mỗi 5 phút).
+   Sáng: nắng vàng góc trên trái · Trưa: sáng trắng từ trên xuống · Chiều: hoàng hôn cam hồng góc dưới phải ·
+   Tối: tím xanh + vài sao · Đêm: xanh đêm + trăng + sao. Quầng sáng trôi nhẹ, sao nhấp nháy. */
+[data-back-fx="daytime"] .fx::before {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  animation: day-drift 8s ease-in-out infinite alternate;
+  animation-delay: calc(var(--k, 0) * -.5s);
+}
+[data-back-fx="daytime"] .fx::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+@keyframes day-drift { from { transform: translate(-4%, -3%) scale(1); } to { transform: translate(4%, 3%) scale(1.06); } }
+[data-daypart="morning"][data-back-fx="daytime"] .fx::before {
+  background: radial-gradient(circle at 22% 18%, rgb(255 228 140 / .7), rgb(255 205 120 / .28) 30%, transparent 55%);
+}
+[data-daypart="noon"][data-back-fx="daytime"] .fx::before {
+  background: radial-gradient(ellipse 80% 55% at 50% 12%, rgb(255 252 230 / .62), rgb(255 244 200 / .22) 45%, transparent 70%);
+}
+[data-daypart="afternoon"][data-back-fx="daytime"] .fx::before {
+  background: radial-gradient(circle at 80% 82%, rgb(255 140 70 / .62), rgb(255 110 130 / .3) 35%, transparent 62%);
+}
+[data-daypart="evening"][data-back-fx="daytime"] .fx {
+  background: linear-gradient(180deg, rgb(90 70 170 / .34), rgb(255 120 100 / .16));
+}
+[data-daypart="evening"][data-back-fx="daytime"] .fx::before {
+  background: radial-gradient(circle at 78% 92%, rgb(255 150 90 / .45), transparent 45%);
+}
+[data-daypart="night"][data-back-fx="daytime"] .fx {
+  background: linear-gradient(180deg, rgb(15 25 75 / .5), rgb(45 30 95 / .32));
+}
+[data-daypart="night"][data-back-fx="daytime"] .fx::before {
+  background: radial-gradient(circle at 70% 26%, rgb(255 250 222 / .95) 0 calc(7 * var(--u)), rgb(255 248 210 / .35) calc(9 * var(--u)), rgb(255 248 210 / .1) calc(20 * var(--u)), transparent calc(30 * var(--u)));
+}
+[data-daypart="evening"][data-back-fx="daytime"] .fx::after,
+[data-daypart="night"][data-back-fx="daytime"] .fx::after {
+  background-image:
+    radial-gradient(circle at 18% 16%, #fff 0 calc(.9 * var(--u)), transparent calc(1.8 * var(--u))),
+    radial-gradient(circle at 44% 34%, #fff 0 calc(.7 * var(--u)), transparent calc(1.5 * var(--u))),
+    radial-gradient(circle at 86% 58%, #fff 0 calc(.8 * var(--u)), transparent calc(1.7 * var(--u))),
+    radial-gradient(circle at 28% 72%, #fff 0 calc(.6 * var(--u)), transparent calc(1.4 * var(--u))),
+    radial-gradient(circle at 62% 86%, #fff 0 calc(.9 * var(--u)), transparent calc(1.8 * var(--u)));
+  background-size: calc(70 * var(--u)) calc(82 * var(--u));
+  animation: twinkle 2.2s ease-in-out infinite alternate;
+  animation-delay: calc(var(--k, 0) * -.3s);
+}
+
 /* Mặt lá: giấy có vân. Hai góc trên dành cho chất bài (trái) và tim (phải), góc dưới cho chất lộn ngược
    (phải) và 🌿 (trái); ảnh và tên nằm giữa, mọi khoảng cách tính theo cỡ lá nên lá to nhỏ đều không chồng. */
 .card-face {
@@ -612,12 +690,13 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 }
 .face-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .face-emoji { font-size: calc(var(--cw) * .365); line-height: 1; }
-/* Tên món: tối đa 3 dòng, được xuống tới hàng chất bài góc dưới nhưng chỉ nằm ở cột giữa
-   (chừa hai bên bằng chỗ của chất bài), dài quá thì cắt đuôi bằng "…" */
+/* Tên món: tối đa 3 dòng. Hai dòng đầu viết gần hết bề ngang lá; dòng thứ 3 nằm ngang hàng chất bài
+   góc dưới nên chỉ viết ở phần giữa (hai "khe" .name-gap chặn hai bên, chỉ ở dòng 3 nhờ shape-outside);
+   dài quá thì cắt đuôi bằng "…" */
 .face-name {
   align-self: stretch;
   min-height: 0;
-  margin: calc(var(--cw) * .055) calc(var(--cw) * .11) 0;
+  margin: calc(var(--cw) * .055) calc(var(--cw) * .02) 0;
   font-weight: 800;
   font-size: max(11px, calc(var(--cw) * .095));
   line-height: 1.18;
@@ -628,6 +707,13 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.name-gap {
+  width: calc(var(--cw) * .1);
+  height: 3.54em; /* 3 dòng */
+  shape-outside: inset(2.36em 0 0 0); /* chỉ chắn dòng thứ 3 */
+}
+.name-gap.l { float: left; }
+.name-gap.r { float: right; }
 /* Tim ở góc trên bên phải, ngang hàng chất bài góc trái */
 .face-hearts {
   position: absolute;
