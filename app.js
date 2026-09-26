@@ -40,6 +40,27 @@
   const QUICK_TEXT_MAX = 2000;
   const DECK_MAX = 12; // số lá nhiều nhất trên sân khấu (nhiều hơn thì xoè bài quá dày)
   const MENU_GROUPS = [['none', 'Không nhóm', '📋'], ['cat', 'Loại món', '🍽️'], ['veg', 'Chay / Mặn', '<i class="veg-icon" aria-hidden="true"></i>'], ['where', 'Ăn ngoài / Nấu ăn', '<i class="mode-icon" data-m="out" aria-hidden="true"></i>']];
+  // Có gì mới: mỗi tính năng một mục, id cố định (đã lưu vào settings.seenNews thì không hiện lại).
+  // Thêm tính năng mới: thêm một mục vào ĐẦU danh sách; máy đang dùng app sẽ thấy nó một lần khi mở app.
+  const NEWS = [
+    {
+      id: 'quick-draw',
+      cat: 'quick',
+      badge: '<i class="quick-icon" aria-hidden="true"></i>',
+      title: 'Bốc nhanh',
+      text: 'Gõ vài món, mỗi dòng một món, rồi xào luôn, không cần thêm vào Thực đơn. Ít món thì Dex tự nhân bản cho đủ lá. Tìm ở ô thứ ba cạnh Ăn ngoài / Nấu ăn.',
+      act: ['try-quick', 'Thử Bốc nhanh'],
+    },
+    {
+      id: 'persona-grumpy-poet',
+      cat: 'talk',
+      badge: '💬',
+      title: 'Dex có thêm 2 tính cách',
+      text: 'Chọn giọng cho Dex khi bình luận lúc xào, rút và chốt món:',
+      personas: ['grumpy', 'poet'],
+      act: ['open-talk', 'Xem trong Custom bộ bài'],
+    },
+  ];
   const HEARTS_MAX = 5;
   const HEARTS_DEFAULT = 3;
   const IDLE_DECK = 10;
@@ -147,6 +168,7 @@
         id: uid(), name, cat, emoji, img: null, at: Date.now(), out: w.includes('o'), cook: w.includes('c'), hearts: HEARTS_DEFAULT, veg: SEED_VEG.has(name),
       }));
       state.settings = normalizeSettings();
+      state.settings.seenNews = NEWS.map(n => n.id); // máy cài mới: cái gì cũng mới, không cần báo
       mergeDishBank(); // máy mới: có sẵn luôn kho món gợi ý
       save();
     }
@@ -213,6 +235,7 @@
       recentColors: (Array.isArray(s?.recentColors) ? s.recentColors : []).filter(c => /^#[0-9a-f]{6}$/i.test(c)).slice(0, RECENT_COLORS),
       persona: PERSONAS.some(([id]) => id === s?.persona) ? s.persona : 'sassy',
       dishBank: Number.isInteger(s?.dishBank) ? s.dishBank : 0, // phiên bản kho món gợi ý đã gộp vào thực đơn
+      seenNews: Array.isArray(s?.seenNews) ? s.seenNews.filter(id => typeof id === 'string').slice(0, 200) : [], // mục "Có gì mới" đã xem
       quickText: typeof s?.quickText === 'string' ? s.quickText.slice(0, QUICK_TEXT_MAX) : '', // danh sách Bốc nhanh, nguyên văn
       back: {
         color: b.color === 'none' || /^#[0-9a-f]{6}$/i.test(b.color) ? b.color : DEFAULT_BACK.color,
@@ -2321,6 +2344,93 @@
     preview.classList.remove('hovering');
   });
 
+  // ---------- Có gì mới ----------
+  const newsDialog = $('#newsDialog');
+  const unseenNews = () => NEWS.filter(n => !state.settings.seenNews.includes(n.id));
+  let newsShown = [];
+
+  // Một câu mẫu của tính cách, để nghe thử ngay trong thông báo
+  function personaLine(id) {
+    const lines = QUIPS[id]?.streak5 ?? QUIPS[id]?.generic ?? [];
+    return lines.length ? lines[rand(lines.length)].replace(/\{name\}/g, 'Phở bò').replace(/\{n\}/g, '5') : '';
+  }
+
+  function newsPersonaHTML(id) {
+    const [, emoji, label] = PERSONAS.find(([p]) => p === id);
+    const on = state.settings.quips && state.settings.persona === id;
+    return `
+      <li class="news-persona" data-persona="${id}">
+        <span class="news-persona-emoji" aria-hidden="true">${emoji}</span>
+        <div class="news-persona-main">
+          <b>${label}</b>
+          <button type="button" class="news-persona-line" data-act="hear" title="Bấm để nghe câu khác">“${esc(personaLine(id))}”</button>
+        </div>
+        <button type="button" class="news-use" data-act="use" aria-pressed="${on}">${on ? `${ICONS.check}Đang dùng` : 'Dùng'}</button>
+      </li>`;
+  }
+
+  function renderNews() {
+    $('#newsList').innerHTML = newsShown.map(n => `
+      <li class="news-item" data-id="${n.id}" data-news="${n.cat}">
+        <div class="news-head">
+          <span class="news-badge">${n.badge}</span>
+          <h3>${n.title}</h3>
+          <span class="news-tag">Mới</span>
+        </div>
+        <p>${n.text}</p>
+        ${n.personas ? `<ul class="news-personas">${n.personas.map(newsPersonaHTML).join('')}</ul>` : ''}
+        ${n.act ? `<button type="button" class="news-cta" data-act="${n.act[0]}">${n.act[1]}${ICONS.back}</button>` : ''}
+      </li>`).join('');
+  }
+
+  function openNews() {
+    newsShown = unseenNews();
+    if (!newsShown.length || document.querySelector('dialog[open]')) return;
+    renderNews();
+    newsDialog.showModal();
+    newsDialog.querySelector('.sheet-body').scrollTop = 0;
+  }
+
+  // Đóng bằng cách nào cũng tính là đã xem
+  function markNewsSeen() {
+    const seen = new Set([...state.settings.seenNews, ...newsShown.map(n => n.id)]);
+    if (seen.size === state.settings.seenNews.length) return;
+    state.settings.seenNews = [...seen];
+    save();
+  }
+
+  newsDialog.querySelector('.icon-btn[data-close]').innerHTML = ICONS.x;
+  // Ghi "đã xem" ngay khi đóng, không đợi sự kiện close (trình duyệt có thể hoãn khi tab đang ẩn); Esc thì qua sự kiện close
+  const closeNews = () => { newsDialog.close(); markNewsSeen(); };
+  newsDialog.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeNews));
+  newsDialog.addEventListener('click', e => { if (e.target === newsDialog) closeNews(); });
+  newsDialog.addEventListener('close', markNewsSeen);
+  $('#newsList').addEventListener('click', e => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    const act = btn.dataset.act;
+    const persona = btn.closest('[data-persona]')?.dataset.persona;
+    if (act === 'try-quick') {
+      closeNews();
+      setView('spin');
+      setMode('quick');
+    } else if (act === 'open-talk') {
+      closeNews();
+      setView('deck');
+      $('#talkPanel').scrollIntoView({ block: 'center', behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+    } else if (act === 'hear' && persona) {
+      btn.textContent = `“${personaLine(persona)}”`;
+    } else if (act === 'use' && persona) {
+      state.settings.persona = persona;
+      state.settings.quips = true; // chọn giọng thì bật luôn lời bình
+      save();
+      renderDeck();
+      samplePersona();
+      for (const li of newsDialog.querySelectorAll('.news-persona')) li.outerHTML = newsPersonaHTML(li.dataset.persona);
+      announce(`Dex đổi sang tính cách ${PERSONAS.find(([p]) => p === persona)[2]}`);
+    }
+  });
+
   // ---------- Sao lưu & giữ dữ liệu ----------
   // Xin trình duyệt đừng tự dọn dữ liệu khi máy thiếu chỗ. Chrome tự quyết không hỏi,
   // Firefox hiện hộp hỏi, nên chỉ xin khi người dùng vừa lưu hoặc sao lưu gì đó.
@@ -2447,6 +2557,8 @@
       await dealIn();
       if (autoSpin) spin();
     }
+    // Có tính năng mới mà máy này chưa xem: báo một lần (mở bằng shortcut Bốc bài / Thêm món thì để lần sau)
+    if (!autoSpin && viewParam !== 'add') openNews();
 
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
       navigator.serviceWorker.register('sw.js').catch(() => {});

@@ -193,7 +193,7 @@
             <div class="panel-head">
               <div>
                 <h2 id="talkTitle">Bộ bài biết nói</h2>
-                <p class="panel-sub">Bình luận khi bạn xào, rút và chốt món.</p>
+                <p class="panel-sub">Dex bình luận khi bạn xào, rút và chốt món.</p>
               </div>
               <input type="checkbox" class="switch" id="quipToggle" role="switch" aria-labelledby="talkTitle">
             </div>
@@ -280,6 +280,23 @@
     <div class="sheet-foot">
       <button type="button" class="btn ghost" data-close>Đóng</button>
       <button type="button" class="btn primary" id="peekSpin">Xào bài &amp; rút</button>
+    </div>
+  </dialog>
+
+  <!-- Có gì mới: hiện một lần khi app có tính năng mới mà máy này chưa xem -->
+  <dialog class="sheet news-sheet" id="newsDialog" aria-labelledby="newsTitle">
+    <div class="sheet-head">
+      <div>
+        <h2 id="newsTitle">Có gì mới</h2>
+        <p class="sheet-sub">Dex, bộ bài của bạn, vừa học thêm vài chiêu.</p>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="Đóng" title="Đóng"></button>
+    </div>
+    <div class="sheet-body">
+      <ul class="news-list" id="newsList"></ul>
+    </div>
+    <div class="sheet-foot">
+      <button type="button" class="btn primary" data-close>Đã hiểu</button>
     </div>
   </dialog>
 
