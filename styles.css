@@ -393,46 +393,47 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 :root { --spark: 255 240 196; }
 .back-light { --spark: 160 104 18; }
 
-/* Cầu vồng (id "foil" giữ nguyên để không mất lựa chọn đã lưu):
-   các vòng cung cầu vồng xoay quanh góc lá như thẻ hologram + một vệt bóng sáng lướt chéo.
-   Nền tối: hoà kiểu overlay cho màu rực; nền sáng: multiply để màu vẫn hiện. */
-[data-back-fx="foil"] .fx { mix-blend-mode: overlay; }
-.back-light[data-back-fx="foil"] .fx { mix-blend-mode: multiply; opacity: .55; }
-[data-back-fx="foil"] .fx::before {
-  content: "";
-  position: absolute;
-  left: -110%;
-  top: -79%;
-  width: 220%;
-  aspect-ratio: 1;
-  background: repeating-conic-gradient(from 0deg,
-    #FF6B6B 0deg, #FFB86B 9deg, #F7F06D 18deg, #7CF29A 27deg, #56CFFF 36deg, #9D8CFF 45deg, #FF7AD9 54deg, #FF6B6B 60deg);
-  opacity: .7;
-  animation: rainbow-spin 7s linear infinite;
-  animation-delay: calc(var(--k, 0) * -.5s);
+/* Cầu vồng (id "foil" giữ nguyên để không mất lựa chọn đã lưu): thẻ hologram.
+   Một dải cầu vồng chéo mềm (đỏ → tím) quét qua lại trên lá, kèm vệt sáng trắng mảnh đi trước nó;
+   ngoài dải đó lá vẫn giữ nguyên màu và vân. Nền tối: hoà screen (chỉ sáng lên, không đục màu);
+   nền sáng: multiply thành các tông pastel. */
+[data-back-fx="foil"] .fx {
+  mix-blend-mode: screen;
+  opacity: .55;
+  /* Vân kim tuyến mảnh chéo (như mặt foil nhiễu xạ), rất nhẹ, đứng yên */
+  background: repeating-linear-gradient(112deg, rgb(255 255 255 / .09) 0 calc(1 * var(--u)), transparent calc(1 * var(--u)) calc(3 * var(--u)));
 }
-/* Xoay đúng một chu kỳ màu (60°) nên vòng lặp liền mạch */
-@keyframes rainbow-spin { to { transform: rotate(60deg); } }
+.back-light[data-back-fx="foil"] .fx {
+  mix-blend-mode: multiply;
+  opacity: .5;
+  background: repeating-linear-gradient(112deg, rgb(0 0 0 / .05) 0 calc(1 * var(--u)), transparent calc(1 * var(--u)) calc(3 * var(--u)));
+}
+[data-back-fx="foil"] .fx::before,
 [data-back-fx="foil"] .fx::after {
   content: "";
   position: absolute;
-  inset: -50%;
-  background: linear-gradient(115deg, transparent 40%, rgb(255 255 255 / .75) 49%, rgb(255 255 255 / .95) 50%, rgb(255 255 255 / .75) 51%, transparent 60%);
-  animation: sheen 3.6s ease-in-out infinite alternate;
-  animation-delay: calc(var(--k, 0) * -.3s);
+  inset: -60% -25%;
+  animation: holo-sweep 5.4s ease-in-out infinite alternate;
+  animation-delay: calc(var(--k, 0) * -.45s);
 }
-@keyframes sheen { from { transform: translate(-32%, -20%); } to { transform: translate(32%, 20%); } }
+[data-back-fx="foil"] .fx::before {
+  background: linear-gradient(112deg,
+    transparent 33%,
+    #FF6E8E 38%, #FFB85C 41%, #F4EF72 44%, #6CEFB4 47%, #5AD3FF 50%, #8C9CFF 53%, #EE8CFF 56%,
+    transparent 62%);
+}
+/* Vệt sáng đi trước dải cầu vồng một chút */
+[data-back-fx="foil"] .fx::after {
+  background: linear-gradient(112deg, transparent 25%, rgb(255 255 255 / .3) 28.5%, rgb(255 255 255 / .65) 30%, rgb(255 255 255 / .3) 31.5%, transparent 35%);
+}
+@keyframes holo-sweep { from { transform: translateX(-30%); } to { transform: translateX(30%); } }
 
-/* Ở lá xem trước: cầu vồng xoay và vệt sáng chạy theo chuột */
-[data-back-fx="foil"] .back-preview.hovering .fx::before {
-  animation: none;
-  transform: rotate(calc(var(--mx, 0) * 120deg + var(--my, 0) * 40deg));
-  transition: transform .15s ease-out;
-}
+/* Ở lá xem trước: dải cầu vồng chạy theo chuột */
+[data-back-fx="foil"] .back-preview.hovering .fx::before,
 [data-back-fx="foil"] .back-preview.hovering .fx::after {
   animation: none;
-  transform: translate(calc(var(--mx, 0) * -64%), calc(var(--my, 0) * -40%));
-  transition: transform .12s ease-out;
+  transform: translateX(calc(var(--mx, 0) * -72% + var(--my, 0) * -14%));
+  transition: transform .15s ease-out;
 }
 
 /* Vệt sáng: một vệt trắng quét ngang, các lá trong quạt quét nối tiếp nhau */
