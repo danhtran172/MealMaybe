@@ -114,7 +114,7 @@
   const state = { foods: [], recent: [], settings: null };
   const ui = {
     view: 'spin',
-    mode: 'out', // out = ăn ngoài, cook = nấu ăn, quick = bốc nhanh; mỗi lần mở app đều bắt đầu ở ăn ngoài
+    mode: 'out', // out = ăn ngoài, cook = nấu ăn, quick = bốc nhanh; mở app thì quay lại chế độ dùng lần cuối (settings.lastMode)
     quickEdit: true, // Bốc nhanh: đang mở khung nhập danh sách (false = thu gọn thành một dòng tóm tắt)
     recentMode: 'out',
     spinFilter: 'all',
@@ -227,6 +227,7 @@
     const b = s?.back ?? {};
     return {
       drawMode: s?.drawMode === 'manual' ? 'manual' : 'auto',
+      lastMode: ['out', 'cook', 'quick'].includes(s?.lastMode) ? s.lastMode : 'out', // Ăn ngoài / Nấu ăn / Bốc nhanh lần cuối dùng
       sound: s?.sound !== false,
       vegOnly: s?.vegOnly === true, // chỉ xào món chay; nhớ qua các lần mở app
       menuGroup: MENU_GROUPS.some(([id]) => id === s?.menuGroup) ? s.menuGroup : 'none', // nhóm danh sách Thực đơn
@@ -1269,6 +1270,8 @@
     if (busy() || mode === ui.mode || !(MODES[mode] || mode === 'quick')) return;
     ui.mode = mode;
     if (MODES[mode]) ui.recentMode = mode;
+    state.settings.lastMode = mode; // lần mở app sau quay lại đúng chế độ này
+    save();
     ui.rejected = null;
     const quick = mode === 'quick';
     const items = quick ? quickFoods().length : 0;
@@ -2511,8 +2514,11 @@
     // Liên kết từ app shortcut: ?spin=main|snack|drink|all, ?view=menu|recent|add, ?mode=cook|quick
     const params = new URLSearchParams(location.search);
     const spinParam = params.get('spin');
+    ui.mode = state.settings.lastMode;
+    if (MODES[ui.mode]) ui.recentMode = ui.mode;
     if (params.get('mode') === 'cook') ui.mode = ui.recentMode = 'cook';
     else if (params.get('mode') === 'quick') ui.mode = 'quick';
+    else if (spinParam && ui.mode === 'quick') ui.mode = 'out'; // shortcut "Bốc món chính…" cần bộ bài thực đơn
     quickText.value = state.settings.quickText;
     quickLines = quickText.value.split('\n').length;
     ui.quickEdit = quickFoods().length < QUICK_MIN;
