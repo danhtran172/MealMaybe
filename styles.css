@@ -1006,8 +1006,6 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 .stage.choosing .card { cursor: pointer; }
 .stage.choosing .card:focus { outline: none; }
 .stage.choosing .card:focus-visible .card-back { outline: 3px solid var(--ink); outline-offset: 3px; }
-.choose-hint { margin: 0; width: 100%; text-align: center; font-weight: 700; }
-.choose-hint small { color: var(--ink-3); font-size: 13px; font-weight: 600; }
 @media (hover: none) { .kbd-only { display: none; } }
 
 /* Nút */

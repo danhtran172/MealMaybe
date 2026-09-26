@@ -428,7 +428,6 @@
       a.innerHTML = '<button type="button" class="btn primary big" disabled>Đang xào bài…</button>';
     } else if (ui.phase === 'choosing') {
       a.innerHTML = `
-        <p class="choose-hint">Chọn một lá bài bạn ưng<small class="kbd-only"> · hoặc ← → rồi Enter</small></p>
         <button type="button" class="btn ghost" data-act="autopick">Chọn ngẫu nhiên</button>`;
     } else if (ui.phase === 'revealed') {
       const others = pool.some(f => f.id !== ui.current.id);
