@@ -20,6 +20,7 @@
     { "name": "Bốc món chính", "short_name": "Món chính", "url": "./index.html?spin=main", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "Bốc ăn vặt", "short_name": "Ăn vặt", "url": "./index.html?spin=snack", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "Bốc đồ uống", "short_name": "Nước", "url": "./index.html?spin=drink", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Bốc nhanh từ danh sách gõ tay", "short_name": "Bốc nhanh", "url": "./index.html?mode=quick", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "Thêm món mới", "short_name": "Thêm món", "url": "./index.html?view=add", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }

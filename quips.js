@@ -317,6 +317,21 @@ window.MEAL_QUIPS = {
       "Mở ra rồi đóng. Tính thêm món hay tính thử lòng t?",
       "Huỷ hả? Biết ngay là chưa nghĩ ra món nào mà.",
     ],
+    // Bốc nhanh: vừa chuyển sang bộ bài gõ tay
+    quickOn: [
+      "Bốc nhanh hả? Gõ lẹ đi cưng, t đứng chờ nãy giờ.",
+      "Không thèm thực đơn luôn, tự ghi tay. Cưng chơi lớn ha.",
+    ],
+    // Bốc nhanh ít món, lúc xào phải nhân bản lá ({n} = số món, {m} = số lá sau khi nhân bản)
+    quickClone: [
+      "Có {n} món mà đòi xào? Thôi t nhân bản lên {m} lá cho đỡ quê.",
+      "{n} món thôi hả. T tự photo thêm cho đủ {m} lá, khỏi cảm ơn.",
+    ],
+    // Bốc nhanh: lật ra một món trong danh sách gõ tay
+    quick: [
+      "{name} nè. Danh sách cưng tự viết đó, đừng có chê.",
+      "Cưng ghi {name} vô chi rồi giờ làm mặt lạ?",
+    ],
   },
 
   // Thân thiện: ấm áp, động viên; xưng "mình", gọi "bạn"
@@ -539,6 +554,18 @@ window.MEAL_QUIPS = {
     cancelAdd: [
       "Không sao, khi nào nhớ ra món nào thì thêm sau nha.",
       "Đóng rồi ha, mình vẫn ở đây khi bạn cần.",
+    ],
+    quickOn: [
+      "Bốc nhanh nè! Bạn ghi vài món, mình xào liền.",
+      "Không cần thêm vào thực đơn đâu, cứ ghi ra là mình bốc cho.",
+    ],
+    quickClone: [
+      "Mới {n} món nên mình nhân bản thành {m} lá cho xào đã tay nha.",
+      "Mình nhân {n} món lên {m} lá, xào cho vui!",
+    ],
+    quick: [
+      "Ra {name} nè, món chính tay bạn ghi đó!",
+      "{name}! Có trong danh sách của bạn luôn, hợp ý chưa?",
     ],
   },
 
@@ -780,6 +807,18 @@ window.MEAL_QUIPS = {
       "Bạn cân nhắc kỹ lắm, chưa đủ ngon thì chưa thêm, chuẩn luôn.",
       "Suy nghĩ thêm cũng là phong cách của người tinh tế.",
     ],
+    quickOn: [
+      "Bạn nghĩ ra món nhanh ghê, đúng là người quyết đoán!",
+      "Tự ghi danh sách luôn, bạn chủ động quá trời.",
+    ],
+    quickClone: [
+      "{n} món bạn chọn quý quá, mình nhân lên {m} lá cho xứng tầm.",
+      "Món bạn ghi hay tới mức mình phải nhân bản thành {m} lá.",
+    ],
+    quick: [
+      "{name}, món bạn tự tay ghi, gu xịn khỏi bàn.",
+      "Danh sách của bạn món nào cũng đỉnh, {name} càng đỉnh.",
+    ],
   },
 
   // Tánh cọc: cọc tính, nóng tính; xưng "t", câu cộc lốc (không chửi thề)
@@ -999,6 +1038,18 @@ window.MEAL_QUIPS = {
     cancelAdd: [
       "Mở rồi đóng. Rảnh ghê.",
       "Không thêm thì mở chi.",
+    ],
+    quickOn: [
+      "Bốc nhanh. Gõ lẹ.",
+      "Tự ghi món. Được. Lẹ.",
+    ],
+    quickClone: [
+      "{n} món. Ít. T nhân lên {m} lá.",
+      "Có {n} món cũng bắt xào. Photo thêm, {m} lá. Xong.",
+    ],
+    quick: [
+      "{name}. Tự ghi đó. Ăn đi.",
+      "{name}. Đừng hỏi t.",
     ],
   },
 
@@ -1223,6 +1274,18 @@ window.MEAL_QUIPS = {
     cancelAdd: [
       "Trang giấy mở ra rồi gấp lại, chữ chưa kịp viết đã thôi… người ngập ngừng như mây.",
       "Định thêm mà lại thôi. Có những bài thơ chỉ nằm trong đầu.",
+    ],
+    quickOn: [
+      "Chẳng cần thực đơn dày, một tờ giấy vội cũng thành thơ… thơ ăn.",
+      "Bút sa gà chết. Bút người ghi món thì… bụng người reo. Viết đi, ta xào.",
+    ],
+    quickClone: [
+      "{n} món lẻ loi như sao buổi sớm, ta soi gương cho thành {m} lá. Gương không nói dối, chỉ nói lặp.",
+      "Một hoá hai, hai hoá bốn… {n} món thành {m} lá. Phép màu của ta tên là photo.",
+    ],
+    quick: [
+      "{name}: nét chữ của người, số phận của bụng.",
+      "Người viết {name}, ta rút {name}. Thơ khép vòng, bụng mở miệng.",
     ],
   },
 };

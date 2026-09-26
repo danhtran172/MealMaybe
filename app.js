@@ -34,6 +34,11 @@
   // "foil" hiển thị là Cầu vồng (giữ id cũ để không mất lựa chọn đã lưu)
   const EFFECTS = [['none', 'Không'], ['foil', 'Cầu vồng'], ['shine', 'Vệt sáng'], ['glitter', 'Lấp lánh'], ['glow', 'Viền sáng']];
   const RECENT_MAX = 7;
+  // Bốc nhanh: danh sách gõ tay (mỗi dòng một món), không thuộc Thực đơn, không ghi vào Gần đây
+  const QUICK_MIN = 2; // cần ít nhất 2 món mới xào được
+  const QUICK_DECK = 8; // ít món hơn thì lúc xào tự nhân bản lá cho đủ ít nhất 8 (mỗi món số bản bằng nhau)
+  const QUICK_TEXT_MAX = 2000;
+  const DECK_MAX = 12; // số lá nhiều nhất trên sân khấu (nhiều hơn thì xoè bài quá dày)
   const MENU_GROUPS = [['none', 'Không nhóm', '📋'], ['cat', 'Loại món', '🍽️'], ['veg', 'Chay / Mặn', '<i class="veg-icon" aria-hidden="true"></i>'], ['where', 'Ăn ngoài / Nấu ăn', '<i class="mode-icon" data-m="out" aria-hidden="true"></i>']];
   const HEARTS_MAX = 5;
   const HEARTS_DEFAULT = 3;
@@ -88,7 +93,8 @@
   const state = { foods: [], recent: [], settings: null };
   const ui = {
     view: 'spin',
-    mode: 'out', // out = ăn ngoài, cook = nấu ăn; mỗi lần mở app đều bắt đầu ở ăn ngoài
+    mode: 'out', // out = ăn ngoài, cook = nấu ăn, quick = bốc nhanh; mỗi lần mở app đều bắt đầu ở ăn ngoài
+    quickEdit: true, // Bốc nhanh: đang mở khung nhập danh sách (false = thu gọn thành một dòng tóm tắt)
     recentMode: 'out',
     spinFilter: 'all',
     menuFilter: 'all',
@@ -207,6 +213,7 @@
       recentColors: (Array.isArray(s?.recentColors) ? s.recentColors : []).filter(c => /^#[0-9a-f]{6}$/i.test(c)).slice(0, RECENT_COLORS),
       persona: PERSONAS.some(([id]) => id === s?.persona) ? s.persona : 'sassy',
       dishBank: Number.isInteger(s?.dishBank) ? s.dishBank : 0, // phiên bản kho món gợi ý đã gộp vào thực đơn
+      quickText: typeof s?.quickText === 'string' ? s.quickText.slice(0, QUICK_TEXT_MAX) : '', // danh sách Bốc nhanh, nguyên văn
       back: {
         color: b.color === 'none' || /^#[0-9a-f]{6}$/i.test(b.color) ? b.color : DEFAULT_BACK.color,
         img: IMG_RE.test(b.img) ? b.img : null,
@@ -229,17 +236,50 @@
   }
 
   // ---------- Truy vấn ----------
+  const isQuick = () => ui.mode === 'quick';
   const recentOf = mode => state.recent.filter(r => r.mode === mode);
   const restingIds = (mode = ui.mode) => new Set(recentOf(mode).map(r => r.foodId));
   const inFilter = (f, filter) => filter === 'all' || f.cat === filter;
   const inMode = (f, mode = ui.mode) => !!f[mode];
-  const deckFoods = () => state.foods.filter(f => inMode(f) && inFilter(f, ui.spinFilter) && (!state.settings.vegOnly || f.veg));
+  const deckFoods = () => isQuick()
+    ? quickFoods()
+    : state.foods.filter(f => inMode(f) && inFilter(f, ui.spinFilter) && (!state.settings.vegOnly || f.veg));
   const foodOf = r => state.foods.find(f => f.id === r.foodId);
   const nameOf = r => foodOf(r)?.name ?? r.name;
   function spinPool() {
+    if (isQuick()) {
+      const items = quickFoods();
+      return items.length >= QUICK_MIN ? items : [];
+    }
     const rest = restingIds();
     return deckFoods().filter(f => !rest.has(f.id));
   }
+
+  // Bỏ ký hiệu đầu dòng người dùng tự gõ / dán vào (- • * 1. 2) ...), vì khung nhập đã có sẵn
+  const QUICK_BULLET = /^\s*(?:[-–—•·*+>▪◦○●]|\d{1,2}[.)])\s*/;
+  const quickName = line => line.replace(QUICK_BULLET, '').trim().replace(/\s+/g, ' ').slice(0, 40);
+  // Món trong danh sách Bốc nhanh: mỗi dòng một món, bỏ dòng trống và dòng trùng tên
+  let quickMemo = { text: null, items: [] };
+  function quickFoods() {
+    const text = state.settings.quickText;
+    if (quickMemo.text === text) return quickMemo.items;
+    const seen = new Set();
+    const items = [];
+    for (const line of text.split('\n')) {
+      const name = quickName(line);
+      const key = name.toLocaleLowerCase('vi');
+      if (!name || seen.has(key)) continue;
+      seen.add(key);
+      items.push({ id: `quick:${key}`, name, cat: 'quick', img: null, emoji: null, hearts: 0, veg: false, quick: true });
+    }
+    quickMemo = { text, items };
+    return items;
+  }
+  // Bốc nhanh ít món: mỗi món nhân thành cùng số bản sao cho tổng đủ ít nhất QUICK_DECK lá
+  // (2 món ×4 = 8, 3 món ×3 = 9, 5 món ×2 = 10, 7 món ×2 = 14); đủ món thì mỗi món một lá, nhiều nhất DECK_MAX lá
+  const quickCopies = n => (n > 0 && n < QUICK_DECK ? Math.ceil(QUICK_DECK / n) : 1);
+  const quickDeckSize = n => (n < QUICK_DECK ? n * quickCopies(n) : Math.min(DECK_MAX, n));
+  const cloneNote = n => `nhân bản ×${quickCopies(n)} thành ${quickDeckSize(n)} lá`;
 
   function when(ts) {
     const d = new Date(ts);
@@ -308,13 +348,18 @@
 
   // ---------- Màn Bốc bài ----------
   function renderSpin() {
+    const quick = isQuick();
     const chips = $('#spinChips');
     chips.innerHTML = chipsHTML(ui.spinFilter);
     chips.classList.toggle('locked', busy());
+    chips.hidden = quick;
+    $('#vegToggle').hidden = quick;
     $('#spinTools').classList.toggle('locked', busy());
+    $('#spinTools').classList.toggle('quick', quick);
     const where = $('#whereSeg');
     where.classList.toggle('locked', busy());
     for (const r of where.querySelectorAll('input')) r.checked = r.value === ui.mode;
+    renderQuick();
     for (const r of $('#modeSeg').querySelectorAll('input')) r.checked = r.value === state.settings.drawMode;
     $('#backBtn').hidden = ui.phase === 'idle';
     $('#peekBtn').hidden = ui.phase !== 'idle';
@@ -334,7 +379,13 @@
     vegBtn.parentElement.title = veg ? 'Đang chỉ xào món chay, bấm để xào tất cả' : 'Chỉ xào món chay';
 
     let note;
-    if (!inCat.length) {
+    if (quick) {
+      const n = inCat.length;
+      note = !n ? 'Gõ vài món vào danh sách, mỗi dòng một món.'
+        : n < QUICK_MIN ? `Mới có <b>1</b> món, thêm ít nhất ${QUICK_MIN - 1} món nữa để xào.`
+          : n < QUICK_DECK ? `<b>${n}</b> món · xào sẽ tự ${cloneNote(n)}`
+            : `<b>${n}</b> món trong bộ bài bốc nhanh`;
+    } else if (!inCat.length) {
       note = veg
         ? `Chưa có món ${kind}${label} nào. Tick “Chay” cho món trong Thực đơn, hoặc tắt nút Chay.`
         : `Chưa có món ${kind}${label} nào. Tick “${MODES[ui.mode].label}” cho món trong Thực đơn nhé.`;
@@ -360,6 +411,8 @@
       a.innerHTML = `
         <button type="button" class="btn primary big" data-act="commit">Chốt món này</button>
         <button type="button" class="btn ghost" data-act="redraw"${others ? '' : ' disabled'}>Rút bài khác</button>`;
+    } else if (quick && !pool.length) {
+      a.innerHTML = '<button type="button" class="btn primary big" data-act="quick-edit">Nhập danh sách món</button>';
     } else if (!inCat.length) {
       a.innerHTML = '<button type="button" class="btn primary big" data-act="goto-add">Thêm món</button>';
     } else if (!pool.length) {
@@ -369,6 +422,91 @@
     } else {
       a.innerHTML = '<button type="button" class="btn primary big" data-act="spin">Xào bài &amp; rút</button>';
     }
+  }
+
+  // ---------- Bốc nhanh: khung nhập danh sách ----------
+  // Khung mở khi đang sửa hoặc chưa đủ món; đủ món thì thu gọn thành một dòng tóm tắt (bấm để sửa)
+  const quickText = $('#quickText');
+  const quickBullets = $('#quickBullets');
+  let quickLines = 1; // số dòng lần vẽ trước: thêm dòng thì chấm đầu dòng mới "nảy" lên
+  let quickSaveTimer = 0;
+
+  function renderQuick() {
+    const box = $('#quickBox');
+    box.hidden = !isQuick();
+    if (box.hidden) return;
+    const items = quickFoods();
+    if (items.length < QUICK_MIN) ui.quickEdit = true; // chưa đủ món thì luôn mở khung nhập
+    box.classList.toggle('locked', busy());
+    $('#quickEdit').hidden = !ui.quickEdit;
+    const sum = $('#quickSummary');
+    sum.hidden = ui.quickEdit;
+    if (!ui.quickEdit) {
+      sum.innerHTML = `<i class="quick-icon" aria-hidden="true"></i><b>${items.length} món</b><span class="quick-sum-names">${items.map(f => esc(f.name)).join(' · ')}</span><span class="quick-sum-edit">${ICONS.edit}Sửa</span>`;
+      sum.setAttribute('aria-label', `Sửa danh sách bốc nhanh, đang có ${items.length} món`);
+    }
+    $('#quickDone').hidden = items.length < QUICK_MIN;
+    $('#quickClear').hidden = !quickText.value;
+  }
+
+  // Mỗi dòng có một chấm đầu dòng như thực đơn quán; dòng trống hoặc trùng món thì chấm nhạt
+  function paintBullets(popLine = -1) {
+    const lines = quickText.value.split('\n');
+    const count = quickText.value ? lines.length : 3; // khung trống: chấm cho cả 3 dòng gợi ý
+    while (quickBullets.children.length < count) quickBullets.append(document.createElement('li'));
+    while (quickBullets.children.length > count) quickBullets.lastElementChild.remove();
+    const seen = new Set();
+    lines.forEach((line, i) => {
+      const key = quickName(line).toLocaleLowerCase('vi');
+      quickBullets.children[i].className = !key ? 'off' : seen.has(key) ? 'off dup' : '';
+      if (key) seen.add(key);
+    });
+    const li = quickBullets.children[popLine];
+    if (li) {
+      void li.offsetWidth;
+      li.classList.add('pop');
+    }
+    // Khung cao 3–5 dòng, nhiều hơn thì cuộn (chấm đầu dòng cuộn theo)
+    quickText.style.setProperty('--rows', Math.min(5, Math.max(3, lines.length)));
+    syncBullets();
+  }
+  const syncBullets = () => { quickBullets.style.transform = `translateY(${-quickText.scrollTop}px)`; };
+
+  function onQuickInput() {
+    state.settings.quickText = quickText.value.slice(0, QUICK_TEXT_MAX);
+    const lines = quickText.value.split('\n').length;
+    const caretLine = quickText.value.slice(0, quickText.selectionStart).split('\n').length - 1;
+    paintBullets(lines > quickLines ? caretLine : -1);
+    quickLines = lines;
+    clearTimeout(quickSaveTimer);
+    quickSaveTimer = setTimeout(save, 400);
+    renderSpin();
+    syncIdleDeck();
+  }
+
+  function setQuickText(text) {
+    quickText.value = text;
+    onQuickInput();
+  }
+
+  function openQuickEdit() {
+    if (busy() || !isQuick()) return;
+    ui.quickEdit = true;
+    renderSpin();
+    quickText.focus({ preventScroll: true });
+    const end = quickText.value.length;
+    quickText.setSelectionRange(end, end);
+    quickText.scrollTop = quickText.scrollHeight;
+    $('#quickBox').scrollIntoView({ block: 'nearest', behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+  }
+
+  function closeQuickEdit() {
+    if (quickFoods().length < QUICK_MIN) return;
+    ui.quickEdit = false;
+    clearTimeout(quickSaveTimer);
+    save();
+    if (document.activeElement === quickText) quickText.blur();
+    renderSpin();
   }
 
   // ---------- Âm thanh: tổng hợp bằng Web Audio, không cần file ----------
@@ -491,6 +629,7 @@
   const talk = {
     streak: 0, lastFood: null, seen: new Map(), lastCommitAt: 0, lastLine: '',
     spins: 0, revealAt: 0, peeks: 0, peekTold: 0, adds: [], modeFlips: [], filterFlips: [], vegEdits: [], autoPicked: false, edgePicked: false,
+    cloneTold: 0,
   };
   // Bong bóng lời bình: trên sân khấu ở màn Bốc bài, nổi phía trên thanh tab ở các màn khác
   const quipStage = $('#quip');
@@ -546,6 +685,12 @@
     talk.peeks = talk.peekTold = 0;
     if (talk.streak > 0) return;
     const h = new Date().getHours();
+    const quickN = isQuick() ? quickFoods().length : 0;
+    // Bốc nhanh ít món: lần đầu thấy bộ bài phải nhân bản (hoặc số món vừa đổi) thì có thể nói
+    if (quickN && quickN < QUICK_DECK && talk.cloneTold !== quickN) {
+      talk.cloneTold = quickN;
+      if (quip('quickClone', { n: quickN, m: quickDeckSize(quickN) }, 0.6)) return;
+    }
     if (Date.now() - talk.lastCommitAt < 90e3) quip('afterCommit');
     else if (h >= 22 || h < 4) quip('late', {}, 0.6);
     else if (talk.spins === 1) quip('firstSpin', {}, 0.35);
@@ -569,6 +714,7 @@
     if (n === 2 && quip('back2', v, 0.6)) return;
     if (auto && quip('autoPick', v, 0.6)) return;
     if (edge && quip('edgePick', v, 0.4)) return;
+    if (food.quick) return quip('quick', v, 0.3); // bộ bài gõ tay: không có tim, không có "sắp cạn"
     if (poolSize <= 2 && quip('small', { n: poolSize }, 0.7)) return;
     if (food.hearts === 5 && quip('five', v, 0.5)) return;
     if (food.hearts === 1 && quip('one', v, 0.6)) return;
@@ -629,20 +775,66 @@
     ], { duration: reduceMotion.matches ? 0 : duration, easing: 'cubic-bezier(.3,.6,.3,1)', fill: 'backwards' }).finished.catch(() => {});
   }
 
+  // Thêm một lá úp lên trên cùng bộ bài
+  function makeCard(k) {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.innerHTML = '<div class="card-inner"><div class="card-back"><i class="fx"></i></div><div class="card-face"></div></div>';
+    el.style.transform = stackT(k);
+    el.style.zIndex = k;
+    el.style.setProperty('--k', k);
+    stage.append(el);
+    const card = { el, inner: el.firstElementChild, face: el.querySelector('.card-face') };
+    deck.push(card);
+    return card;
+  }
+
   function buildDeck(n) {
     stage.classList.remove('lit', 'fanned');
     stage.replaceChildren();
     deck = [];
-    for (let k = 0; k < n; k++) {
-      const el = document.createElement('div');
-      el.className = 'card';
-      el.innerHTML = '<div class="card-inner"><div class="card-back"><i class="fx"></i></div><div class="card-face"></div></div>';
-      el.style.transform = stackT(k);
-      el.style.zIndex = k;
-      el.style.setProperty('--k', k);
-      stage.append(el);
-      deck.push({ el, inner: el.firstElementChild, face: el.querySelector('.card-face') });
+    for (let k = 0; k < n; k++) makeCard(k);
+  }
+
+  // Số lá của bộ bài úp chờ xào. Bốc nhanh: mỗi món một lá (ít nhất 2 lá cho đỡ trống)
+  const idleSize = () => (isQuick() ? Math.min(DECK_MAX, Math.max(QUICK_MIN, quickFoods().length)) : IDLE_DECK);
+
+  // Bộ bài đang úp chờ xào: thêm / bớt lá tại chỗ cho khớp số món (gõ thêm món thì có lá rơi xuống)
+  function syncIdleDeck() {
+    if (ui.phase !== 'idle' || !deck.length || busy()) return;
+    const target = idleSize();
+    for (let k = deck.length, i = 0; k < target; k++, i++) {
+      const c = makeCard(k);
+      c.el.style.opacity = '0';
+      c.el.style.transform = T(0, -k * 1.3 - 34, k % 2 ? 7 : -7);
+      sfx.snap(i * 0.04 + 0.2, 0.12);
+      tween(c.el, { transform: stackT(k), opacity: 1 }, { duration: 280, delay: i * 40, easing: 'cubic-bezier(.2,.9,.3,1.1)' });
     }
+    while (deck.length > target) {
+      const c = deck.pop();
+      tween(c.el, { transform: T(0, -deck.length * 1.3 - 24, 0, 0.96), opacity: 0 }, { duration: 180 }).then(() => c.el.remove());
+    }
+  }
+
+  // Bốc nhanh ít món: nhân bản lá cho đủ n lá. Mỗi bản sao trượt ra từ bộ bài rồi đặt lên trên, viền loé màu Bốc nhanh.
+  function cloneCards(n) {
+    const from = deck.length;
+    const jobs = [];
+    for (let k = from, i = 0; k < n; k++, i++) {
+      const c = makeCard(k);
+      const side = i % 2 ? 1 : -1;
+      c.el.classList.add('clone');
+      c.el.style.opacity = '0';
+      c.el.style.transform = T(0, -(k - 1) * 1.3, 0, 0.98);
+      sfx.snap((i * 70 + 150) / 1000, 0.18);
+      jobs.push(tween(c.el, { transform: stackT(k), opacity: 1 }, {
+        duration: 320,
+        delay: i * 70,
+        easing: 'cubic-bezier(.3,.7,.3,1)',
+        via: { transform: T(side * 62, -k * 1.3 - 16, side * 11, 1.03), opacity: '1' },
+      }).then(() => c.el.classList.remove('clone')));
+    }
+    return Promise.all(jobs);
   }
 
   function dealIn() {
@@ -655,20 +847,20 @@
   }
 
   function resetDeck() {
-    buildDeck(IDLE_DECK);
+    buildDeck(idleSize());
     dealIn();
   }
 
   function faceHTML(food, { rate = false } = {}) {
     const cat = CATS[food.cat];
-    const art = food.img
-      ? `<img src="${esc(food.img)}" alt="">`
-      : food.emoji ? `<span class="face-emoji">${esc(food.emoji)}</span>` : suit(food.cat, 'face-suit');
+    const art = food.quick ? '<i class="cutlery" aria-hidden="true"></i>' // Bốc nhanh: hình dao nĩa
+      : food.img ? `<img src="${esc(food.img)}" alt="">`
+        : food.emoji ? `<span class="face-emoji">${esc(food.emoji)}</span>` : suit(food.cat, 'face-suit');
     return `
       <span class="pip pip-tl">${suit(food.cat)}</span>
       <div class="face-art">${art}${food.veg ? '<span class="veg-mark" role="img" aria-label="Món chay" title="Món chay"><i class="veg-icon"></i></span>' : ''}</div>
       <div class="face-name">${esc(food.name)}</div>
-      ${rate ? rateHTML(food) : heartsHTML(food.hearts)}
+      ${food.quick ? '' : rate ? rateHTML(food) : heartsHTML(food.hearts)}
       <span class="pip pip-br">${suit(food.cat)}</span>`;
   }
 
@@ -697,16 +889,19 @@
       return v;
     };
 
-    // Dọn lá đã lật lần trước và chia bộ bài mới
+    // Dọn lá đã lật lần trước và chia bộ bài mới.
+    // Bốc nhanh ít món: chia đúng số món, rồi nhân bản lá cho đủ n lá.
+    const start = isQuick() ? Math.min(n, idleSize()) : n;
     if (stage.querySelector('.card.chosen')) {
       stage.classList.remove('lit');
       sfx.swish(0, 0.2, 0.12, 2400, 900);
       await live(Promise.all(deck.map(c => tween(c.el, { transform: T(0, 40, 0, 1), opacity: 0 }, { duration: 200 }))));
-      buildDeck(n);
+      buildDeck(start);
       await live(dealIn());
-    } else if (deck.length !== n) {
-      buildDeck(n); // bộ bài đang úp sẵn: đổi số lá tại chỗ, không cần chia lại
+    } else if (deck.length !== start) {
+      buildDeck(start); // bộ bài đang úp sẵn: đổi số lá tại chỗ, không cần chia lại
     }
+    if (deck.length < n) await live(cloneCards(n));
 
     const quick = reduceMotion.matches;
     let order = deck.slice(); // dưới → trên
@@ -941,8 +1136,14 @@
     if (!pool.length) { renderSpin(); return; }
 
     const food = pool[rand(pool.length)];
-    const size = Math.max(7, Math.min(12, pool.length));
+    const size = isQuick() ? quickDeckSize(quickFoods().length) : Math.max(7, Math.min(DECK_MAX, pool.length));
     const run = ++spinRun;
+    if (isQuick()) {
+      ui.quickEdit = false; // thu gọn khung nhập cho sân khấu rộng chỗ
+      clearTimeout(quickSaveTimer);
+      save();
+      if (document.activeElement === quickText) quickText.blur();
+    }
     sfx.unlock();
     quipOnSpinStart();
     ui.phase = 'spinning';
@@ -990,12 +1191,16 @@
   function commit() {
     const food = ui.current;
     if (!food || ui.phase !== 'revealed') return;
-    const mine = recentOf(ui.mode);
-    const bumped = mine.length >= RECENT_MAX ? mine[RECENT_MAX - 1] : null;
-    state.recent = trimRecent([{ id: uid(), foodId: food.id, name: food.name, cat: food.cat, mode: ui.mode, at: Date.now() }, ...state.recent]);
+    // Bốc nhanh không thuộc Thực đơn nên không ghi vào Gần đây
+    let bumped = null;
+    if (!food.quick) {
+      const mine = recentOf(ui.mode);
+      bumped = mine.length >= RECENT_MAX ? mine[RECENT_MAX - 1] : null;
+      state.recent = trimRecent([{ id: uid(), foodId: food.id, name: food.name, cat: food.cat, mode: ui.mode, at: Date.now() }, ...state.recent]);
+      save();
+    }
     ui.phase = 'committed';
     ui.rejected = null;
-    save();
     stage.querySelector('.card.chosen .card-face')?.insertAdjacentHTML('beforeend', '<span class="stamp">ĐÃ CHỐT</span>');
     sfx.thump(0.05);
     quipOnCommit(food);
@@ -1038,19 +1243,27 @@
   }
 
   function setMode(mode) {
-    if (busy() || mode === ui.mode || !MODES[mode]) return;
+    if (busy() || mode === ui.mode || !(MODES[mode] || mode === 'quick')) return;
     ui.mode = mode;
-    ui.recentMode = mode;
+    if (MODES[mode]) ui.recentMode = mode;
     ui.rejected = null;
+    const quick = mode === 'quick';
+    const items = quick ? quickFoods().length : 0;
+    if (quick) ui.quickEdit = items < QUICK_MIN;
     if (ui.phase !== 'idle') {
       ui.phase = 'idle';
       ui.current = null;
       resetDeck();
-    }
+    } else syncIdleDeck();
     renderSpin();
     renderRecent();
-    announce(`Chế độ ${MODES[mode].label}: ${spinPool().length} món trong bộ bài.`);
+    announce(quick
+      ? `Bốc nhanh: ${items} món trong danh sách.`
+      : `Chế độ ${MODES[mode].label}: ${spinPool().length} món trong bộ bài.`);
     if (flipped(talk.modeFlips, 3)) quip('flipMode');
+    else if (quick) quip('quickOn', {}, 0.5);
+    // Danh sách trống: gõ được ngay (điện thoại thì không tự bật bàn phím)
+    if (quick && !items && matchMedia('(pointer: fine)').matches) quickText.focus({ preventScroll: true });
   }
 
   // ---------- Màn Thực đơn ----------
@@ -1482,11 +1695,25 @@
 
   function openPeek() {
     talk.peeks++;
+    const mini = (f, cls = '') => `<div class="card-face mini-face${cls}" data-cat="${f.cat}">${faceHTML(f)}</div>`;
+    if (isQuick()) {
+      const items = quickFoods();
+      const ok = items.length >= QUICK_MIN;
+      $('#deckTitle').textContent = 'Bộ bài bốc nhanh';
+      $('#deckSub').innerHTML = ok
+        ? `<b>${items.length}</b> món${items.length < QUICK_DECK ? ` · xào sẽ ${cloneNote(items.length)}` : ''}`
+        : `Cần ít nhất ${QUICK_MIN} món để xào.`;
+      $('#deckGrid').innerHTML = items.length ? items.map(f => mini(f)).join('') : '<p class="empty-note">Gõ danh sách món vào khung Bốc nhanh, mỗi dòng một món.</p>';
+      $('#restWrap').hidden = true;
+      $('#peekSpin').disabled = !ok || busy();
+      deckDialog.showModal();
+      deckDialog.querySelector('.sheet-body').scrollTop = 0;
+      return;
+    }
     const inCat = deckFoods();
     const rest = restingIds();
     const pool = inCat.filter(f => !rest.has(f.id));
     const resting = inCat.filter(f => rest.has(f.id));
-    const mini = (f, cls = '') => `<div class="card-face mini-face${cls}" data-cat="${f.cat}">${faceHTML(f)}</div>`;
     $('#deckTitle').textContent = [`Bộ bài ${MODES[ui.mode].label.toLowerCase()}`, state.settings.vegOnly ? 'Chay' : '', ui.spinFilter === 'all' ? '' : CATS[ui.spinFilter].label].filter(Boolean).join(' · ');
     $('#deckSub').innerHTML = pool.length
       ? `<b>${pool.length}</b> món có thể rút trúng${resting.length ? ` · ${resting.length} món đang nghỉ` : ''}`
@@ -1794,6 +2021,37 @@
     if (filter) setSpinFilter(filter);
   });
 
+  // Bốc nhanh: khung nhập danh sách
+  quickText.addEventListener('input', onQuickInput);
+  quickText.addEventListener('scroll', syncBullets);
+  // Rời khung nhập: bỏ ký hiệu đầu dòng tự gõ (VD "- Phở") cho khỏi trùng với chấm có sẵn, rồi lưu ngay
+  quickText.addEventListener('change', () => {
+    const clean = quickText.value.split('\n').map(l => l.replace(QUICK_BULLET, '')).join('\n');
+    if (clean !== quickText.value) setQuickText(clean);
+    clearTimeout(quickSaveTimer);
+    save();
+  });
+  // Dán danh sách có sẵn ký hiệu đầu dòng (- • 1. …): bỏ ký hiệu và dòng trống vì khung đã có chấm đầu dòng
+  quickText.addEventListener('paste', e => {
+    const text = e.clipboardData?.getData('text/plain');
+    if (!text || (!text.includes('\n') && !QUICK_BULLET.test(text))) return;
+    e.preventDefault();
+    const clean = text.replace(/\r\n?/g, '\n').split('\n').map(l => l.replace(QUICK_BULLET, '').trim()).filter(Boolean).join('\n');
+    // insertText giữ được Ctrl+Z; trình duyệt không hỗ trợ thì chèn tay
+    if (!document.execCommand?.('insertText', false, clean)) {
+      quickText.setRangeText(clean, quickText.selectionStart, quickText.selectionEnd, 'end');
+      onQuickInput();
+    }
+  });
+  $('#quickSummary').addEventListener('click', openQuickEdit);
+  $('#quickDone').addEventListener('click', closeQuickEdit);
+  $('#quickClear').addEventListener('click', () => {
+    const before = quickText.value;
+    setQuickText('');
+    quickText.focus();
+    toast('Đã xoá danh sách bốc nhanh', { label: 'Hoàn tác', run: () => setQuickText(before) });
+  });
+
   groupBtn.addEventListener('click', () => (groupList.hidden ? openGroups() : closeGroups()));
   groupBtn.addEventListener('keydown', e => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -1846,6 +2104,7 @@
       else if (fast) quip('redrawFast', {}, 0.8);
     }
     else if (act === 'autopick') ui.autoPick?.();
+    else if (act === 'quick-edit') openQuickEdit();
     else if (act === 'goto-add') {
       setView('menu');
       openAdd();
@@ -2138,12 +2397,17 @@
     if (newDishes.length) save();
     applyBack();
     samplePersona();
-    buildDeck(IDLE_DECK);
 
-    // Liên kết từ app shortcut: ?spin=main|snack|drink|all, ?view=menu|recent|add
+    // Liên kết từ app shortcut: ?spin=main|snack|drink|all, ?view=menu|recent|add, ?mode=cook|quick
     const params = new URLSearchParams(location.search);
     const spinParam = params.get('spin');
     if (params.get('mode') === 'cook') ui.mode = ui.recentMode = 'cook';
+    else if (params.get('mode') === 'quick') ui.mode = 'quick';
+    quickText.value = state.settings.quickText;
+    quickLines = quickText.value.split('\n').length;
+    ui.quickEdit = quickFoods().length < QUICK_MIN;
+    paintBullets();
+    buildDeck(idleSize());
     const viewParam = params.get('view');
     let autoSpin = false;
     if (spinParam && (spinParam === 'all' || CATS[spinParam])) {

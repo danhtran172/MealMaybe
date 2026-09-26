@@ -31,13 +31,30 @@
     <main class="app">
       <!-- Bốc bài -->
       <section class="view" id="view-spin">
-        <div class="where-switch" id="whereSeg" role="radiogroup" aria-label="Ăn ngoài hay nấu ăn">
+        <div class="where-switch" id="whereSeg" role="radiogroup" aria-label="Chọn bộ bài">
           <label><input type="radio" name="where" value="out"><span><b><i class="mode-icon" data-m="out" aria-hidden="true"></i></b> Ăn ngoài</span></label>
           <label><input type="radio" name="where" value="cook"><span><b><i class="mode-icon" data-m="cook" aria-hidden="true"></i></b> Nấu ăn</span></label>
+          <label class="where-quick"><input type="radio" name="where" value="quick"><span><b><i class="quick-icon" aria-hidden="true"></i></b> Bốc nhanh</span></label>
         </div>
         <div class="chips" id="spinChips" aria-label="Loại món để bốc bài"></div>
+        <!-- Bốc nhanh: danh sách gõ tay, không thuộc Thực đơn -->
+        <section class="quick-box" id="quickBox" aria-label="Danh sách bốc nhanh" hidden>
+          <button type="button" class="quick-summary" id="quickSummary" hidden></button>
+          <div class="quick-edit" id="quickEdit">
+            <div class="quick-head">
+              <label for="quickText"><i class="quick-icon" aria-hidden="true"></i> Danh sách món</label>
+              <button type="button" class="link" id="quickClear">Xoá hết</button>
+              <button type="button" class="btn small quick-done" id="quickDone">Xong</button>
+            </div>
+            <div class="quick-editor" id="quickEditor">
+              <ol class="quick-bullets" id="quickBullets" aria-hidden="true"></ol>
+              <textarea id="quickText" wrap="off" spellcheck="false" autocomplete="off" maxlength="2000" aria-describedby="quickHint" placeholder="Mỗi dòng một món&#10;Phở bò&#10;Cơm tấm"></textarea>
+            </div>
+            <p class="field-hint" id="quickHint">Mỗi dòng một món, cần ít nhất 2 món. Ít hơn 8 món thì mỗi món tự nhân bản (số bản bằng nhau) cho đủ ít nhất 8 lá. Danh sách được nhớ lại nhưng không thêm vào Thực đơn.</p>
+          </div>
+        </section>
         <div class="spin-tools" id="spinTools">
-          <label class="tool-btn veg-toggle"><i class="veg-icon" aria-hidden="true"></i><span>Món chay</span><input type="checkbox" class="switch sm" id="vegBtn" role="switch"></label>
+          <label class="tool-btn veg-toggle" id="vegToggle"><i class="veg-icon" aria-hidden="true"></i><span>Món chay</span><input type="checkbox" class="switch sm" id="vegBtn" role="switch"></label>
           <div class="mini-seg" id="modeSeg" role="radiogroup" aria-label="Cách rút bài">
             <label><input type="radio" name="drawMode" value="auto"><span>Tự động</span></label>
             <label><input type="radio" name="drawMode" value="manual"><span>Tôi chọn</span></label>
