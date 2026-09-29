@@ -1380,6 +1380,39 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 .card-del { color: var(--ink-3); }
 .card-del svg { width: 15px; height: 15px; }
 .card-del:hover { border-color: var(--tomato); color: var(--tomato); }
+
+/* Chọn nhiều: bấm lá để chọn, dấu tích tròn ở góc, ẩn hàng nút dưới lá */
+.pick-mark {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  z-index: 3;
+  display: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: transparent;
+  box-shadow: 0 0 0 1.5px var(--ink-3);
+  pointer-events: none;
+}
+.pick-mark svg { width: 16px; height: 16px; stroke-width: 3; }
+.food-list.selecting .pick-mark { display: grid; }
+.food-list.selecting .card-tools { visibility: hidden; }
+.food-list.selecting .rate-hearts button { pointer-events: none; }
+.food-list.selecting .food-card > .card-face:hover { transform: none; }
+.food-card.selected .pick-mark {
+  background: color-mix(in srgb, var(--tomato) var(--fill-k), #000);
+  color: #fff;
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--tomato) var(--fill-k), #000);
+}
+.food-card.selected > .card-face {
+  box-shadow: 0 0 0 3px var(--tomato), 0 10px 22px -12px rgb(60 20 5 / .55);
+  transform: scale(.95);
+}
+.food-list.selecting .food-card:not(.selected) > .card-face { opacity: .78; }
 .empty-note { padding: 28px 0; text-align: center; color: var(--ink-3); font-size: 14px; }
 
 /* Sao lưu / khôi phục */
@@ -1829,7 +1862,22 @@ button.swatch:focus-visible { outline: 2.5px solid var(--tomato); outline-offset
   background: linear-gradient(var(--bg), transparent);
   pointer-events: none;
 }
-.add-btn { margin-left: auto; height: 38px; padding: 0 16px 0 12px; gap: 5px; }
+.add-btn { height: 38px; padding: 0 16px 0 12px; gap: 5px; }
+/* Nút Chọn (chọn nhiều để xoá) đứng trước nút Thêm món */
+.select-btn { margin-left: auto; height: 38px; padding: 0 14px 0 11px; gap: 5px; white-space: nowrap; }
+.select-btn svg { width: 17px; height: 17px; color: var(--ink-3); }
+/* Điện thoại hẹp: bỏ chữ "N món" cho vừa hàng (số món đã có ở badge tab Thực đơn) */
+@media (max-width: 399px) { #menuCount { display: none; } }
+/* Chế độ chọn nhiều: thanh thao tác thay chỗ tiêu đề + nút Thêm món */
+.menu-head.selecting > :not(.select-bar) { display: none; }
+.menu-head.selecting > .select-bar[hidden] { display: none; }
+.select-bar { display: flex; align-items: center; gap: 6px; flex: 1; min-height: 42px; }
+.select-bar .icon-btn { margin-left: -8px; }
+.select-count { font-size: 15px; font-weight: 800; }
+.select-bar .link { margin-left: auto; white-space: nowrap; }
+.select-bar .btn { height: 38px; padding: 0 16px 0 12px; gap: 5px; white-space: nowrap; }
+.select-bar .btn svg { width: 17px; height: 17px; }
+
 .add-btn svg { width: 18px; height: 18px; stroke-width: 2.4; }
 
 .sheet-foot {
@@ -2320,6 +2368,14 @@ button.swatch:focus-visible { outline: 2.5px solid var(--tomato); outline-offset
 @media (prefers-reduced-motion: reduce) {
   .quick-edit, .quick-bullets li.pop::before, .card.clone .card-back { animation: none; }
 }
+
+/* ===== Thực đơn demo: popup ở 2 lần đầu vào Thực đơn ===== */
+@media (min-width: 640px) { .sheet.demo-sheet { width: min(460px, calc(100% - 32px)); } }
+.demo-sheet .sheet-body { color: var(--ink-2); font-size: 14.5px; line-height: 1.55; text-wrap: pretty; }
+.demo-sheet .sheet-body p { margin: 0 0 8px; }
+.demo-sheet .sheet-body ul { margin: 0; padding-left: 20px; }
+.demo-sheet .sheet-body li + li { margin-top: 4px; }
+.demo-sheet .sheet-body b { color: var(--ink); }
 
 /* ===== Có gì mới: hộp thông báo tính năng mới (hiện một lần) ===== */
 @media (min-width: 640px) { .sheet.news-sheet { width: min(520px, calc(100% - 32px)); } }

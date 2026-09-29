@@ -78,7 +78,15 @@
           <div class="list-head menu-head">
             <h2>Thực đơn</h2>
             <span class="muted" id="menuCount"></span>
+            <button type="button" class="btn ghost small select-btn" id="selectBtn"></button>
             <button type="button" class="btn primary small add-btn" id="addFoodBtn"></button>
+            <!-- Chế độ chọn nhiều: thay hàng tiêu đề bằng thanh thao tác -->
+            <div class="select-bar" id="selectBar" hidden>
+              <button type="button" class="icon-btn" id="selectCancel" aria-label="Thoát chọn nhiều" title="Thoát chọn nhiều"></button>
+              <span class="select-count" id="selectCount" aria-live="polite"></span>
+              <button type="button" class="link" id="selectAll"></button>
+              <button type="button" class="btn primary small" id="selectDelete"></button>
+            </div>
           </div>
           <div class="chips small" id="menuChips" aria-label="Lọc thực đơn"></div>
           <div class="group-by">
@@ -296,6 +304,28 @@
       <ul class="news-list" id="newsList"></ul>
     </div>
     <div class="sheet-foot">
+      <button type="button" class="btn primary" data-close>Đã hiểu</button>
+    </div>
+  </dialog>
+
+  <!-- Thực đơn demo: hiện ở 2 lần đầu vào Thực đơn -->
+  <dialog class="sheet demo-sheet" id="demoDialog" aria-labelledby="demoTitle">
+    <div class="sheet-head">
+      <div>
+        <h2 id="demoTitle">Thực đơn này chỉ là demo</h2>
+        <p class="sheet-sub">Các món có sẵn chỉ để bạn thử cho biết.</p>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="Đóng" title="Đóng"></button>
+    </div>
+    <div class="sheet-body">
+      <p>Mỗi người một khẩu vị, nên bạn hãy <b>tự tạo thực đơn riêng</b> để lần nào bốc bài cũng ra món hợp gu:</p>
+      <ul>
+        <li>Xoá bớt món không hợp: bấm <b>Chọn</b> để xoá cùng lúc nhiều món.</li>
+        <li>Thêm những món bạn hay ăn bằng nút <b>+ Thêm món</b>.</li>
+      </ul>
+    </div>
+    <div class="sheet-foot">
+      <button type="button" class="btn ghost" data-act="select">Xoá bớt món</button>
       <button type="button" class="btn primary" data-close>Đã hiểu</button>
     </div>
   </dialog>

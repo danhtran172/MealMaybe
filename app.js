@@ -38,6 +38,7 @@
   const QUICK_MIN = 2; // cần ít nhất 2 món mới xào được
   const QUICK_DECK = 8; // ít món hơn thì lúc xào tự nhân bản lá cho đủ ít nhất 8 (mỗi món số bản bằng nhau)
   const QUICK_TEXT_MAX = 2000;
+  const DEMO_TIMES = 2; // popup "thực đơn demo" hiện ở 2 lần đầu vào Thực đơn
   const DECK_MAX = 12; // số lá nhiều nhất trên sân khấu (nhiều hơn thì xoè bài quá dày)
   const MENU_GROUPS = [['none', 'Không nhóm', '📋'], ['cat', 'Loại món', '🍽️'], ['veg', 'Chay / Mặn', '<i class="veg-icon" aria-hidden="true"></i>'], ['where', 'Ăn ngoài / Nấu ăn', '<i class="mode-icon" data-m="out" aria-hidden="true"></i>']];
   // Có gì mới: mỗi tính năng một mục, id cố định (đã lưu vào settings.seenNews thì không hiện lại).
@@ -99,6 +100,7 @@
     soundOff: svg('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="m16 9.5 5 5M21 9.5l-5 5"/>'),
     chevron: svg('<path d="m6.5 9.5 5.5 5.5 5.5-5.5"/>'),
     check: svg('<path d="m5 12.5 4.5 4.5L19 7.5"/>'),
+    select: svg('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="m8.5 12.2 2.4 2.4 4.6-4.9"/>'),
     deck: svg('<path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.1-.9-1.6-.9-2.6 0-.9.8-1.6 1.7-1.6H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11.5" r="1.2"/><circle cx="10.5" cy="7.5" r="1.2"/><circle cx="15.2" cy="7.8" r="1.2"/>'),
   };
 
@@ -120,6 +122,8 @@
     spinFilter: 'all',
     menuFilter: 'all',
     editingId: null,
+    selecting: false, // Thực đơn: đang ở chế độ chọn nhiều lá để xoá
+    selected: new Set(), // id các món đang được chọn
     pendingImg: undefined, // undefined = giữ ảnh cũ, null = bỏ ảnh, string = ảnh mới
     phase: 'idle', // idle | spinning | revealed | committed
     current: null,
@@ -231,6 +235,7 @@
       sound: s?.sound !== false,
       vegOnly: s?.vegOnly === true, // chỉ xào món chay; nhớ qua các lần mở app
       menuGroup: MENU_GROUPS.some(([id]) => id === s?.menuGroup) ? s.menuGroup : 'none', // nhóm danh sách Thực đơn
+      demoSeen: Number.isInteger(s?.demoSeen) ? Math.min(Math.max(s.demoSeen, 0), DEMO_TIMES) : 0, // số lần đã hiện popup "thực đơn demo"
       quips: s?.quips !== false,
       // Màu tự chọn gần đây, dùng chung cho màu bộ bài và màu vân
       recentColors: (Array.isArray(s?.recentColors) ? s.recentColors : []).filter(c => /^#[0-9a-f]{6}$/i.test(c)).slice(0, RECENT_COLORS),
@@ -334,11 +339,25 @@
 
   // ---------- Điều hướng ----------
   function setView(view) {
+    const prev = ui.view;
     if (view !== ui.view) hideQuip();
+    if (view !== 'menu' && ui.selecting) setSelecting(false);
     ui.view = view;
     for (const id of ['spin', 'menu', 'recent', 'deck']) $(`#view-${id}`).hidden = id !== view;
     renderTabs();
     window.scrollTo(0, 0);
+    // Đợi một nhịp: đi thẳng tới popup Thêm món (vd. nút "Thêm món" ở màn Bốc bài) thì không chen popup demo
+    if (view === 'menu' && prev !== 'menu') setTimeout(openDemo, 0);
+  }
+
+  // ---------- Popup "thực đơn demo": nhắc tự tạo thực đơn riêng, hiện ở DEMO_TIMES lần đầu vào Thực đơn ----------
+  const demoDialog = $('#demoDialog');
+  function openDemo() {
+    if (ui.view !== 'menu' || state.settings.demoSeen >= DEMO_TIMES || !state.foods.length) return;
+    if (document.querySelector('dialog[open]')) return;
+    state.settings.demoSeen++;
+    save();
+    demoDialog.showModal();
   }
 
   function renderTabs() {
@@ -1501,6 +1520,7 @@
       <li class="food-card${ui.editingId === f.id ? ' editing' : ''}" data-id="${f.id}">
         ${restNote(f)}
         <div class="card-face mini-face" data-cat="${f.cat}" data-act="edit" role="button" tabindex="0" aria-label="Sửa ${esc(f.name)}" title="Bấm để sửa">${faceHTML(f, { rate: true })}</div>
+        <span class="pick-mark" aria-hidden="true">${ICONS.check}</span>
         <div class="card-tools">
           ${toggle(f, 'out')}${toggle(f, 'cook')}${toggle(f, 'veg')}
           <button type="button" class="card-tog card-del" data-act="del" aria-label="Xoá ${esc(f.name)}" title="Xoá">${ICONS.trash}</button>
@@ -1520,6 +1540,65 @@
           <li class="group-head"${g.cat ? ` data-cat="${g.cat}"` : ''}><span>${g.label}</span><small>${g.items.length}</small></li>
           ${g.items.map(row).join('')}`).join('')
         : items.map(row).join('');
+
+    $('#selectBtn').hidden = !state.foods.length;
+    syncSelection();
+  }
+
+  // ---- Chọn nhiều lá để xoá: chỉ đổi class / nhãn trên lá có sẵn, không vẽ lại cả danh sách
+  function setSelecting(on) {
+    ui.selecting = on;
+    ui.selected.clear();
+    syncSelection();
+    if (on) announce('Chế độ chọn nhiều: bấm vào lá để chọn món cần xoá');
+  }
+
+  function toggleSelected(id) {
+    if (ui.selected.has(id)) ui.selected.delete(id);
+    else ui.selected.add(id);
+    syncSelection();
+  }
+
+  const visibleFoods = () => state.foods.filter(f => inFilter(f, ui.menuFilter));
+
+  function syncSelection() {
+    // Món đã bị xoá / khôi phục thì bỏ khỏi danh sách chọn
+    for (const id of ui.selected) if (!state.foods.some(f => f.id === id)) ui.selected.delete(id);
+    if (ui.selecting && !state.foods.length) ui.selecting = false;
+    const on = ui.selecting;
+    const n = ui.selected.size;
+    $('.menu-head').classList.toggle('selecting', on);
+    $('#selectBar').hidden = !on;
+    $('#foodList').classList.toggle('selecting', on);
+    $('#selectBtn').setAttribute('aria-pressed', String(on));
+    for (const card of $('#foodList').querySelectorAll('.food-card')) {
+      const f = state.foods.find(x => x.id === card.dataset.id);
+      const picked = on && ui.selected.has(card.dataset.id);
+      const face = card.querySelector('.card-face');
+      card.classList.toggle('selected', picked);
+      face.setAttribute('aria-label', `${on ? 'Chọn' : 'Sửa'} ${f?.name ?? ''}`);
+      face.title = on ? (picked ? 'Bấm để bỏ chọn' : 'Bấm để chọn') : 'Bấm để sửa';
+      if (on) face.setAttribute('aria-pressed', String(picked));
+      else face.removeAttribute('aria-pressed');
+    }
+    if (!on) return;
+    const visible = visibleFoods();
+    const allPicked = visible.length > 0 && visible.every(f => ui.selected.has(f.id));
+    $('#selectCount').textContent = n ? `Đã chọn ${n} món` : 'Chọn món để xoá';
+    $('#selectAll').textContent = allPicked ? 'Bỏ chọn hết' : 'Chọn hết';
+    $('#selectAll').hidden = !visible.length;
+    $('#selectDelete').innerHTML = `${ICONS.trash}<span>Xoá${n ? ` (${n})` : ''}</span>`;
+    $('#selectDelete').disabled = !n;
+  }
+
+  function toggleSelectAll() {
+    const visible = visibleFoods();
+    const allPicked = visible.every(f => ui.selected.has(f.id));
+    for (const f of visible) {
+      if (allPicked) ui.selected.delete(f.id);
+      else ui.selected.add(f.id);
+    }
+    syncSelection();
   }
 
   // ---- Dropdown "Nhóm theo": nút kiểu chip + danh sách thả xuống (mẫu listbox, dùng được bằng bàn phím)
@@ -1640,6 +1719,29 @@
       },
     });
     quip(food.hearts === 5 ? 'deleteFive' : 'deleteFood', { name: food.name }, food.hearts === 5 ? 0.9 : 0.6);
+  }
+
+  // Xoá một lần nhiều món (chế độ chọn nhiều), Hoàn tác trả mỗi món về đúng vị trí cũ
+  function removeFoods(ids) {
+    const gone = state.foods.map((f, i) => [i, f]).filter(([, f]) => ids.has(f.id));
+    if (!gone.length) return;
+    if (gone.length === 1) { setSelecting(false); removeFood(gone[0][1].id); return; }
+    state.foods = state.foods.filter(f => !ids.has(f.id));
+    if (ids.has(ui.editingId)) resetForm();
+    ui.selecting = false;
+    ui.selected.clear();
+    save();
+    renderAll();
+    toast(`Đã xoá ${gone.length} món`, {
+      label: 'Hoàn tác',
+      run: () => {
+        const foods = state.foods.slice();
+        for (const [i, f] of gone) foods.splice(i, 0, f); // chèn theo thứ tự vị trí tăng dần: về đúng chỗ cũ
+        state.foods = foods;
+        save();
+        renderAll();
+      },
+    });
   }
 
   // ---------- Màn Gần đây: hai danh sách ăn ngoài / nấu ăn ----------
@@ -2220,6 +2322,11 @@
   });
 
   $('#foodList').addEventListener('click', e => {
+    if (ui.selecting) {
+      const id = e.target.closest('.food-card')?.dataset.id;
+      if (id) toggleSelected(id);
+      return;
+    }
     const btn = e.target.closest('[data-act]');
     const id = btn?.closest('[data-id]')?.dataset.id;
     if (!id) return;
@@ -2233,9 +2340,25 @@
   $('#foodList').addEventListener('keydown', e => {
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.food-card > .card-face')) {
       e.preventDefault();
-      startEdit(e.target.closest('[data-id]').dataset.id);
+      const id = e.target.closest('[data-id]').dataset.id;
+      if (ui.selecting) toggleSelected(id);
+      else startEdit(id);
     }
   });
+
+  $('#selectBtn').innerHTML = `${ICONS.select}<span>Chọn</span>`;
+  $('#selectBtn').title = 'Chọn nhiều món để xoá';
+  $('#selectBtn').addEventListener('click', () => setSelecting(!ui.selecting));
+  $('#selectCancel').innerHTML = ICONS.x;
+  $('#selectCancel').addEventListener('click', () => setSelecting(false));
+  $('#selectAll').addEventListener('click', toggleSelectAll);
+  $('#selectDelete').addEventListener('click', () => removeFoods(new Set(ui.selected)));
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || e.defaultPrevented || !ui.selecting || ui.view !== 'menu') return;
+    if (document.querySelector('dialog[open]') || !groupList.hidden) return;
+    setSelecting(false);
+  });
+
 
   $('#recentCols').addEventListener('click', e => {
     const btn = e.target.closest('[data-act]');
@@ -2353,6 +2476,14 @@
   preview.addEventListener('pointerleave', () => {
     ['--rx', '--ry', '--mx', '--my'].forEach(p => preview.style.removeProperty(p));
     preview.classList.remove('hovering');
+  });
+
+  demoDialog.querySelector('.icon-btn[data-close]').innerHTML = ICONS.x;
+  demoDialog.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => demoDialog.close()));
+  demoDialog.addEventListener('click', e => { if (e.target === demoDialog) demoDialog.close(); });
+  demoDialog.querySelector('[data-act="select"]').addEventListener('click', () => {
+    demoDialog.close();
+    setSelecting(true);
   });
 
   // ---------- Có gì mới ----------
@@ -2571,6 +2702,7 @@
       await dealIn();
       if (autoSpin) spin();
     }
+    if (ui.view === 'menu' && viewParam !== 'add') openDemo(); // mở thẳng vào Thực đơn (shortcut) cũng tính một lần
     // Có tính năng mới mà máy này chưa xem: báo một lần (mở bằng shortcut Bốc bài / Thêm món thì để lần sau)
     if (!autoSpin && viewParam !== 'add') openNews();
 
