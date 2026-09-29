@@ -1136,6 +1136,7 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 
 /* Nút */
 .actions { display: flex; flex-direction: column; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+#view-spin.drawing .actions { margin-top: 22px; } /* đang rút bài: nút Chốt món / Rút bài khác cách lá bài xa hơn chút */
 
 .btn {
   height: 50px;
@@ -1307,13 +1308,44 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 }
 /* Bảng Bộ lọc: cùng khung với danh sách thả xuống, các lựa chọn là chip nhỏ */
 .dropdown-list.filter-panel { width: min(340px, calc(100vw - 2 * var(--gutter))); padding: 12px 14px; }
-.filter-sec + .filter-sec { margin-top: 12px; }
+.filter-sec + .filter-sec,
+#filterPills + .filter-sec { margin-top: 12px; }
 .filter-sec h4 { margin: 0 0 7px; color: var(--ink-3); font-size: 12px; font-weight: 700; }
 .filter-pills { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip.pill { --c: var(--tomato); height: 32px; padding: 0 11px; font-size: 13px; }
 .chip.pill :is(.suit, .veg-icon, .meat-icon, .mode-icon) { width: 16px; height: 16px; vertical-align: 0; }
 /* Lựa chọn đang bật có nền là màu của nó: icon chuyển sang trắng cho khỏi chìm */
 .chip.pill[aria-pressed="true"] :is(.veg-icon, .meat-icon, .mode-icon) { background: #fff; }
+/* Số tim: dropdown toán tử (≥ = ≤) và hàng 5 tim bấm được như ô chấm tim trong form, cùng một hàng */
+.hearts-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.op-picker .dropdown-btn { height: 34px; gap: 6px; padding: 0 9px 0 12px; font-size: 13px; font-weight: 700; }
+.op-picker .dropdown-icon { font-size: 16px; font-weight: 800; }
+.op-picker .dropdown-list { left: 0; right: auto; min-width: 170px; transform-origin: top left; }
+.op-picker .dropdown-emoji { font-size: 16px; font-weight: 800; }
+.filter-hearts { display: flex; transition: opacity .15s; }
+.filter-hearts.idle { opacity: .55; }
+.filter-hearts button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--switch-off);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color .12s, transform .12s;
+}
+.filter-hearts button.on { color: #E0412A; }
+/* Rê chuột: tô đến tim đang trỏ, bỏ tô các tim sau */
+.filter-hearts:hover button { color: #E0412A; opacity: .75; }
+.filter-hearts button:hover ~ button { color: var(--switch-off); opacity: 1; }
+.filter-hearts button:hover { transform: scale(1.15); opacity: 1; }
+.filter-hearts button:focus-visible { outline: 2.5px solid var(--tomato); outline-offset: -2px; }
+.mini-hearts { color: #E0412A; letter-spacing: -1px; }
 .filter-foot {
   display: flex;
   align-items: center;
@@ -2248,6 +2280,7 @@ button.swatch:focus-visible { outline: 2.5px solid var(--tomato); outline-offset
   #view-spin .stage { height: var(--stage-h); --cw: calc(var(--stage-h) * .356); --ch: calc(var(--cw) * 1.393); }
   /* Nằm trên các lá khi xoè bài để luôn bấm được (VD "Chọn ngẫu nhiên") */
   #view-spin .actions { position: relative; z-index: 7; margin-top: calc(var(--stage-h) * -.12); }
+  #view-spin.drawing .actions { margin-top: calc(var(--stage-h) * -.12 + 16px); }
   #view-spin .quip { bottom: calc(var(--stage-h) * .12 + 6px); } /* lời bình không bị nút che */
 }
 

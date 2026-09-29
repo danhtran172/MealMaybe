@@ -122,7 +122,8 @@
     quickEdit: true, // Bốc nhanh: đang mở khung nhập danh sách (false = thu gọn thành một dòng tóm tắt)
     recentMode: 'out',
     spinFilter: 'main', // loại món đang bốc; mở app thì lấy lại lựa chọn cuối (settings.spinFilter)
-    menuFilters: { cat: 'all', veg: 'all', where: 'all', hearts: 'all' }, // bộ lọc Thực đơn (không nhớ qua các lần mở app)
+    menuFilters: { cat: 'all', veg: 'all', where: 'all', hearts: 'all' }, // bộ lọc Thực đơn (không nhớ qua các lần mở app); hearts là toán tử
+    menuHeartsN: 3, // số tim đi kèm toán tử của bộ lọc Số tim
     editingId: null,
     selecting: false, // Thực đơn: đang ở chế độ chọn nhiều lá để xoá
     selected: new Set(), // id các món đang được chọn
@@ -1495,33 +1496,52 @@
     });
   }
 
-  // ---- Bộ lọc Thực đơn: [khoá, tiêu đề, [[giá trị, chữ, icon HTML, màu khi chọn]]]
+  // ---- Bộ lọc Thực đơn: [khoá, tiêu đề, [[giá trị, chữ, icon HTML, màu khi chọn, chữ đọc cho trình đọc màn hình]]]
+  // Số tim: chọn toán tử (≥ = ≤) ở hàng chip, số tim ở hàng 5 trái tim bên dưới (ui.menuHeartsN)
+  const HEART_OPS = { gte: (a, b) => a >= b, eq: (a, b) => a === b, lte: (a, b) => a <= b };
+  const HEART_OP_CHOICES = [['all', 'Tất cả', ''], ['gte', 'Trở lên', '≥'], ['eq', 'Đúng bằng', '='], ['lte', 'Trở xuống', '≤']];
   const CAT_COLOR = { main: 'var(--tomato)', snack: 'var(--snack)', drink: 'var(--teal)' };
   const MENU_FILTERS = [
     ['cat', 'Loại món', [['all', 'Tất cả'], ...Object.entries(CATS).map(([id, c]) => [id, c.label, suit(id), CAT_COLOR[id]])]],
     ['veg', 'Chay / Mặn', [['all', 'Tất cả'], ['veg', 'Chay', '<i class="veg-icon" aria-hidden="true"></i>', 'var(--veg)'], ['meat', 'Mặn', '<i class="meat-icon" aria-hidden="true"></i>', 'var(--meat)']]],
     ['where', 'Ăn ngoài / Nấu ăn', [['all', 'Tất cả'], ['out', 'Ăn ngoài', MODES.out.emoji, 'var(--out)'], ['cook', 'Nấu ăn', MODES.cook.emoji, 'var(--cook)']]],
-    ['hearts', 'Số tim', [['all', 'Tất cả'], ['3', 'Từ 3 tim'], ['4', 'Từ 4 tim'], ['5', '5 tim']]],
+    ['hearts', 'Số tim', [['all', 'Tất cả'], ['gte', '≥', '', '', 'Từ số tim này trở lên'], ['eq', '=', '', '', 'Đúng số tim này'], ['lte', '≤', '', '', 'Từ số tim này trở xuống']]],
   ];
   const menuMatch = (f, flt = ui.menuFilters) =>
     (flt.cat === 'all' || f.cat === flt.cat)
     && (flt.veg === 'all' || f.veg === (flt.veg === 'veg'))
     && (flt.where === 'all' || !!f[flt.where])
-    && (flt.hearts === 'all' || f.hearts >= Number(flt.hearts));
-  // Các bộ lọc đang bật, theo thứ tự trong bảng: [[khoá, chữ]]
+    && (flt.hearts === 'all' || HEART_OPS[flt.hearts](f.hearts, ui.menuHeartsN));
+  // Tim nhỏ in liền (tô n tim), kèm chữ cho trình đọc màn hình
+  const miniHearts = n => `<span class="mini-hearts" aria-hidden="true">${'♥'.repeat(n)}</span><span class="sr-only">${n} tim</span>`;
+  // Các bộ lọc đang bật, theo thứ tự trong bảng: [[khoá, nhãn HTML]]
   const activeFilters = () => MENU_FILTERS
     .filter(([key]) => ui.menuFilters[key] !== 'all')
-    .map(([key, , opts]) => [key, opts.find(([v]) => v === ui.menuFilters[key])[1]]);
+    .map(([key, , opts]) => {
+      const [, label, , , aria] = opts.find(([v]) => v === ui.menuFilters[key]);
+      return [key, key === 'hearts' ? `<span aria-hidden="true">${label}</span><span class="sr-only">${aria}:</span> ${miniHearts(ui.menuHeartsN)}` : label];
+    });
 
-  function filterPanelHTML(shown) {
-    const n = activeFilters().length;
-    return MENU_FILTERS.map(([key, title, opts]) => `
+  // Hàng 5 trái tim chọn số tim cho bộ lọc; mờ đi khi đang "Tất cả"
+  const heartsRowHTML = () => `
+    <div class="filter-hearts${ui.menuFilters.hearts === 'all' ? ' idle' : ''}" role="radiogroup" aria-label="Số tim">
+      ${Array.from({ length: HEARTS_MAX }, (_, i) => `<button type="button" class="${i < ui.menuHeartsN ? 'on' : ''}" data-act="hearts-n" data-n="${i + 1}" role="radio" aria-checked="${i + 1 === ui.menuHeartsN}" aria-label="${i + 1} tim"><span aria-hidden="true">♥</span></button>`).join('')}
+    </div>`;
+
+  // Các mục lọc dạng chip (Số tim có khung riêng trong index.html)
+  function filterPillsHTML() {
+    return MENU_FILTERS.filter(([key]) => key !== 'hearts').map(([key, title, opts]) => `
       <div class="filter-sec">
         <h4 id="flt-${key}">${title}</h4>
         <div class="filter-pills" role="group" aria-labelledby="flt-${key}">
           ${opts.map(([val, label, icon, c]) => `<button type="button" class="chip pill" data-key="${key}" data-val="${val}" aria-pressed="${ui.menuFilters[key] === val}"${c ? ` style="--c: ${c}"` : ''}>${icon ?? ''}${label}</button>`).join('')}
         </div>
-      </div>`).join('') + `
+      </div>`).join('');
+  }
+
+  function filterFootHTML(shown) {
+    const n = activeFilters().length;
+    return `
       <div class="filter-foot">
         <button type="button" class="link" data-act="clear-filters"${n ? '' : ' disabled'}>Xoá lọc</button>
         <span class="muted">Đang hiện ${shown} món</span>
@@ -1539,13 +1559,16 @@
     const active = activeFilters();
     $('#menuSummary').innerHTML = !active.length
       ? (total ? `Tất cả <b>${total}</b> món` : '')
-      : `<b>${items.length}</b>/${total} món · ${active.map(([, label]) => esc(label)).join(' · ')} <button type="button" class="link inline" data-act="clear-filters">Xoá lọc</button>`;
+      : `<b>${items.length}</b>/${total} món · ${active.map(([, label]) => label).join(' · ')} <button type="button" class="link inline" data-act="clear-filters">Xoá lọc</button>`;
     const filterBtn = $('#filterBtn');
     filterBtn.innerHTML = `${ICONS.filter}${active.length ? `<span class="tool-badge">${active.length}</span>` : ''}`;
     filterBtn.classList.toggle('on', active.length > 0);
     filterBtn.setAttribute('aria-label', active.length ? `Bộ lọc, đang bật ${active.length}` : 'Bộ lọc');
     filterBtn.title = 'Lọc thực đơn';
-    $('#filterPanel').innerHTML = filterPanelHTML(items.length);
+    $('#filterPills').innerHTML = filterPillsHTML();
+    heartsOpPicker.render(HEART_OP_CHOICES, ui.menuFilters.hearts, { name: 'Số tim' });
+    $('#filterHearts').innerHTML = heartsRowHTML();
+    $('#filterFoot').innerHTML = filterFootHTML(items.length);
     // Nút nhỏ dưới lá: chỉ biểu tượng, chú thích ở title / aria-label
     const toggle = (f, mode) => {
       const on = !!f[mode];
@@ -1725,6 +1748,11 @@
   // Loại món ở màn Bốc bài: Tất cả / Món chính / Ăn vặt / Nước
   const CAT_CHOICES = FILTERS.map(f => [f.id, f.label, CATS[f.id] ? suit(f.id) : '<i class="all-icon" aria-hidden="true"></i>']);
   const catPicker = dropdown($('#catPicker'), id => setSpinFilter(id));
+  // Toán tử của bộ lọc Số tim (Thực đơn)
+  const heartsOpPicker = dropdown($('#heartsOpPicker'), id => {
+    ui.menuFilters.hearts = id;
+    renderMenu();
+  });
 
   // Chia món thành các nhóm có tiêu đề; "none" thì trả về null (danh sách phẳng)
   function menuGroups(items, by) {
@@ -2277,6 +2305,7 @@
   }
   function closeFilters(refocus = false) {
     if (filterPanel.hidden) return;
+    heartsOpPicker.close();
     filterPanel.hidden = true;
     $('#filterBtn').setAttribute('aria-expanded', 'false');
     document.removeEventListener('pointerdown', outsideFilters, true);
@@ -2294,13 +2323,19 @@
       ui.menuFilters[key] = val;
       renderMenu();
       filterPanel.querySelector(`[data-key="${key}"][data-val="${val}"]`)?.focus(); // bảng vừa vẽ lại: giữ chỗ đang bấm
+    } else if (e.target.closest('[data-act="hearts-n"]')) {
+      const n = Number(e.target.closest('[data-n]').dataset.n);
+      ui.menuHeartsN = n;
+      if (ui.menuFilters.hearts === 'all') ui.menuFilters.hearts = 'gte'; // bấm tim khi chưa lọc: mặc định "từ n tim trở lên"
+      renderMenu();
+      filterPanel.querySelector(`[data-act="hearts-n"][data-n="${n}"]`)?.focus();
     } else if (e.target.closest('[data-act="clear-filters"]')) {
       clearFilters();
       filterPanel.querySelector('[aria-pressed=true]')?.focus();
     }
   });
   filterPicker.addEventListener('keydown', e => {
-    if (e.key !== 'Escape' || filterPanel.hidden) return;
+    if (e.key !== 'Escape' || e.defaultPrevented || filterPanel.hidden) return;
     e.preventDefault();
     closeFilters(true);
   });

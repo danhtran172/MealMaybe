@@ -106,7 +106,21 @@
             <p class="menu-summary" id="menuSummary" aria-live="polite"></p>
             <div class="popover" id="filterPicker">
               <button type="button" class="tool-icon" id="filterBtn" aria-haspopup="true" aria-expanded="false" aria-controls="filterPanel"></button>
-              <div class="dropdown-list filter-panel" id="filterPanel" role="group" aria-label="Bộ lọc thực đơn" hidden></div>
+              <div class="dropdown-list filter-panel" id="filterPanel" role="group" aria-label="Bộ lọc thực đơn" hidden>
+                <div id="filterPills"></div>
+                <!-- Số tim: dropdown toán tử + hàng 5 trái tim (#filterHearts) -->
+                <div class="filter-sec">
+                  <h4 id="flt-hearts">Số tim</h4>
+                  <div class="hearts-filter-row">
+                    <div class="dropdown op-picker" id="heartsOpPicker">
+                      <button type="button" class="chip dropdown-btn" id="heartsOpBtn" aria-haspopup="listbox" aria-expanded="false" aria-controls="heartsOpList"></button>
+                      <ul class="dropdown-list" id="heartsOpList" role="listbox" aria-labelledby="flt-hearts" hidden></ul>
+                    </div>
+                    <div id="filterHearts"></div>
+                  </div>
+                </div>
+                <div id="filterFoot"></div>
+              </div>
             </div>
             <div class="dropdown" id="groupPicker">
               <button type="button" class="tool-icon dropdown-btn" id="groupBtn" aria-haspopup="listbox" aria-expanded="false" aria-controls="groupList"></button>
