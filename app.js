@@ -1550,7 +1550,6 @@
 
   function renderMenu() {
     const total = state.foods.length;
-    $('#menuCount').textContent = total ? `${total} món` : '';
 
     const rest = { out: restingIds('out'), cook: restingIds('cook') };
     const items = state.foods.filter(f => menuMatch(f));
@@ -1637,6 +1636,7 @@
     $('#selectBar').hidden = !on;
     $('#foodList').classList.toggle('selecting', on);
     $('#selectBtn').setAttribute('aria-pressed', String(on));
+    $('#selectBtn').hidden = on || !state.foods.length; // đang chọn thì thanh trên đầu đã có nút thoát
     for (const card of $('#foodList').querySelectorAll('.food-card')) {
       const f = state.foods.find(x => x.id === card.dataset.id);
       const picked = on && ui.selected.has(card.dataset.id);
@@ -2233,6 +2233,7 @@
     $('#quipToggle').checked = state.settings.quips;
     $('#personaSet').disabled = !state.settings.quips;
     $('#personaSample').disabled = !state.settings.quips;
+    if (!state.settings.quips) $('#personaSample').textContent = '…'; // tắt lời bình: câu mẫu chỉ còn dấu ba chấm
     $('#talkPanel').classList.toggle('off', !state.settings.quips);
     for (const r of $('#personaPills').querySelectorAll('input')) r.checked = r.value === state.settings.persona;
     const img = $('#backImgPreview');
@@ -2505,6 +2506,7 @@
     if (!state.settings.quips) hideQuip();
     save();
     renderDeck();
+    if (state.settings.quips) samplePersona(); // bật lại: hiện ngay một câu mẫu thay cho dấu ba chấm
   });
 
   // Tính cách: đổi xong cho nghe thử một câu
@@ -2533,7 +2535,7 @@
   }
 
   // Quay lại & âm thanh
-  $('#backBtn').innerHTML = `${ICONS.back}<span>Quay lại</span>`;
+  $('#backBtn').innerHTML = ICONS.back; // chỉ icon, chữ ở aria-label / title
   $('#backBtn').addEventListener('click', backToDeck);
   $('#soundBtn').addEventListener('click', () => {
     state.settings.sound = !state.settings.sound;
@@ -2629,7 +2631,7 @@
         <span class="news-persona-emoji" aria-hidden="true">${emoji}</span>
         <div class="news-persona-main">
           <b>${label}</b>
-          <button type="button" class="news-persona-line" data-act="hear" title="Bấm để nghe câu khác">“${esc(personaLine(id))}”</button>
+          <button type="button" class="news-persona-line" data-act="hear" title="Bấm để xem câu khác">“${esc(personaLine(id))}”</button>
         </div>
         <button type="button" class="news-use" data-act="use" aria-pressed="${on}">${on ? `${ICONS.check}Đang dùng` : 'Dùng'}</button>
       </li>`;

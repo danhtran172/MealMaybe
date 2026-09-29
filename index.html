@@ -65,7 +65,7 @@
           <!-- Hàng nút trên sân khấu: Quay lại (khi đang bốc) | Tự động / Tôi chọn | Xem bộ bài · Âm thanh -->
           <div class="stage-bar">
             <div class="stage-bar-start">
-              <button type="button" class="stage-btn back-btn" id="backBtn" title="Quay lại (Esc)" hidden></button>
+              <button type="button" class="stage-btn back-btn" id="backBtn" aria-label="Quay lại" title="Quay lại (Esc)" hidden></button>
             </div>
             <div class="stage-bar-mid">
               <div class="mini-seg" id="modeSeg" role="radiogroup" aria-label="Cách rút bài">
@@ -90,8 +90,6 @@
         <div class="menu-list">
           <div class="list-head menu-head">
             <h2>Thực đơn</h2>
-            <span class="muted" id="menuCount"></span>
-            <button type="button" class="btn ghost small select-btn" id="selectBtn"></button>
             <button type="button" class="btn primary small add-btn" id="addFoodBtn"></button>
             <!-- Chế độ chọn nhiều: thay hàng tiêu đề bằng thanh thao tác -->
             <div class="select-bar" id="selectBar" hidden>
@@ -101,9 +99,9 @@
               <button type="button" class="btn primary small" id="selectDelete"></button>
             </div>
           </div>
-          <!-- Tóm tắt đang hiện gì + hai nút icon Lọc / Nhóm theo (bấm mới hiện lựa chọn) -->
+          <!-- Nút Chọn (trái) + hai nút icon Lọc / Nhóm theo (phải, bấm mới hiện lựa chọn) -->
           <div class="menu-tools">
-            <p class="menu-summary" id="menuSummary" aria-live="polite"></p>
+            <button type="button" class="btn ghost small select-btn" id="selectBtn"></button>
             <div class="popover" id="filterPicker">
               <button type="button" class="tool-icon" id="filterBtn" aria-haspopup="true" aria-expanded="false" aria-controls="filterPanel"></button>
               <div class="dropdown-list filter-panel" id="filterPanel" role="group" aria-label="Bộ lọc thực đơn" hidden>
@@ -127,6 +125,7 @@
               <ul class="dropdown-list" id="groupList" role="listbox" aria-label="Nhóm theo" hidden></ul>
             </div>
           </div>
+          <p class="menu-summary" id="menuSummary" aria-live="polite"></p>
           <ul class="food-list" id="foodList"></ul>
 
           <section class="data-box" aria-labelledby="dataTitle">
@@ -244,7 +243,7 @@
             </fieldset>
 
             <div class="talk-sample">
-              <span class="talk-sample-label">Nghe thử <small>· bấm để nghe câu khác</small></span>
+              <span class="talk-sample-label">Nghe thử <small>· bấm để xem câu khác</small></span>
               <button type="button" class="persona-sample" id="personaSample" aria-live="polite"></button>
             </div>
           </section>

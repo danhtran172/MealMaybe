@@ -981,7 +981,8 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 }
 .stage-btn:hover { background: var(--surface-2); color: var(--ink); }
 .stage-btn svg { width: 18px; height: 18px; }
-.back-btn { flex: none; padding: 0 13px 0 7px; animation: pop-in .22s cubic-bezier(.2, .9, .3, 1.2); }
+.back-btn { flex: none; width: 36px; padding: 0; animation: pop-in .22s cubic-bezier(.2, .9, .3, 1.2); } /* tròn, chỉ icon như nút âm thanh */
+.back-btn svg { width: 20px; height: 20px; }
 .sound-btn { width: 36px; }
 .sound-btn[aria-pressed="false"] { color: var(--ink-3); }
 /* Xem bộ bài: nút icon ở góc phải, bên trái nút âm thanh */
@@ -1010,6 +1011,7 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
   transform: translateX(-50%);
   cursor: pointer;
   animation: quip-in .34s cubic-bezier(.2, 1.35, .4, 1);
+  white-space: pre-line; /* câu thơ của Thi sĩ xuống dòng được */
 }
 /* Đuôi bong bóng chỉ lên bộ bài */
 .quip::before {
@@ -1112,6 +1114,7 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
   box-shadow: 0 12px 26px -14px rgb(0 0 0 / .55);
   cursor: pointer;
   animation: sample-in .34s cubic-bezier(.2, 1.35, .4, 1);
+  white-space: pre-line; /* thơ của Thi sĩ xuống dòng */
 }
 .persona-sample::before {
   content: "";
@@ -1137,6 +1140,8 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 /* Nút */
 .actions { display: flex; flex-direction: column; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
 #view-spin.drawing .actions { margin-top: 22px; } /* đang rút bài: nút Chốt món / Rút bài khác cách lá bài xa hơn chút */
+/* Đang rút bài: bộ bài lùi xuống chút, cách hàng nút Quay lại / Tự động / Âm thanh (hàng nút đặt tuyệt đối nên đứng yên) */
+#view-spin.drawing .stage-wrap { padding-top: 14px; }
 
 .btn {
   height: 50px;
@@ -1217,8 +1222,11 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 .field { display: grid; gap: 5px; }
 .field span { font-size: 12px; font-weight: 700; color: var(--ink-2); }
 .field input {
+  width: 100%;
+  min-width: 0; /* ô nhập có bề ngang mặc định (~20 ký tự): phải cho co lại, không thì lố ra ngoài popup trên điện thoại hẹp */
   height: 46px;
   padding: 0 13px;
+  font-size: 16px; /* 16px: iPhone không tự phóng to cả trang khi bấm vào ô (và không tự thu lại sau khi đóng popup) */
   border-radius: 12px;
   border: 1.5px solid var(--line);
   background: var(--bg);
@@ -1264,7 +1272,10 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 /* Nhóm theo (Thực đơn): dropdown, nút mở là chip cùng kiểu hàng lọc, danh sách cùng kiểu panel */
 /* Thực đơn: hàng công cụ dưới tiêu đề: tóm tắt bên trái, nút icon Lọc / Nhóm theo bên phải */
 .menu-tools { position: relative; display: flex; align-items: center; gap: 8px; margin-top: 16px; } /* chừa chỗ để số đếm trên nút Lọc không lọt vào vệt mờ dưới tiêu đề */
-.menu-summary { flex: 1; min-width: 0; margin: 0; color: var(--ink-2); font-size: 13px; line-height: 1.4; text-wrap: pretty; }
+.menu-summary { margin: 10px 0 0; color: var(--ink-2); font-size: 13px; line-height: 1.4; text-wrap: pretty; }
+.menu-summary:empty { display: none; }
+.menu-tools .select-btn { height: 40px; }
+.menu-tools .popover { margin-left: auto; } /* Chọn bên trái, Lọc / Nhóm theo dồn sang phải */
 .menu-summary b { color: var(--ink); }
 /* Bảng lọc canh theo mép phải của cả hàng (không theo nút Lọc) để không tràn ra ngoài màn hình */
 .menu-tools .popover { position: static; }
@@ -1771,6 +1782,7 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
   outline: none;
 }
 .hex-input::placeholder { color: var(--ink-3); text-transform: none; }
+@media (pointer: coarse) { .hex-input { font-size: 16px; } } /* màn cảm ứng: 16px để iPhone không tự phóng to */
 .hex-input:focus { border-color: var(--tomato); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tomato) 20%, transparent); }
 .color-warn {
   margin: 10px 0 0;
@@ -1984,12 +1996,13 @@ button.swatch:focus-visible { outline: 2.5px solid var(--tomato); outline-offset
   background: linear-gradient(var(--bg), transparent);
   pointer-events: none;
 }
-.add-btn { height: 38px; padding: 0 16px 0 12px; gap: 5px; }
-/* Nút Chọn (chọn nhiều để xoá) đứng trước nút Thêm món */
-.select-btn { margin-left: auto; height: 38px; padding: 0 14px 0 11px; gap: 5px; white-space: nowrap; }
+.add-btn { margin-left: auto; height: 38px; padding: 0 16px 0 12px; gap: 5px; }
+/* Nút Chọn (chọn nhiều để xoá), đầu hàng công cụ dưới tiêu đề */
+.select-btn { height: 38px; padding: 0 14px 0 11px; gap: 5px; white-space: nowrap; }
 .select-btn svg { width: 17px; height: 17px; color: var(--ink-3); }
-/* Điện thoại hẹp: bỏ chữ "N món" cho vừa hàng (số món đã có ở badge tab Thực đơn) */
-@media (max-width: 399px) { #menuCount { display: none; } }
+/* Tiêu đề + Thêm món luôn một hàng */
+.menu-head { flex-wrap: nowrap; }
+.menu-head h2, .menu-head .add-btn { white-space: nowrap; }
 /* Chế độ chọn nhiều: thanh thao tác thay chỗ tiêu đề + nút Thêm món */
 .menu-head.selecting > :not(.select-bar) { display: none; }
 .menu-head.selecting > .select-bar[hidden] { display: none; }
@@ -2534,6 +2547,7 @@ button.swatch:focus-visible { outline: 2.5px solid var(--tomato); outline-offset
   line-height: 1.4;
   text-align: left;
   cursor: pointer;
+  white-space: pre-line; /* thơ của Thi sĩ xuống dòng */
 }
 .news-persona-line:hover { color: var(--ink); }
 .news-use {
