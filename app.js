@@ -100,6 +100,8 @@
     soundOff: svg('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="m16 9.5 5 5M21 9.5l-5 5"/>'),
     chevron: svg('<path d="m6.5 9.5 5.5 5.5 5.5-5.5"/>'),
     check: svg('<path d="m5 12.5 4.5 4.5L19 7.5"/>'),
+    filter: svg('<path d="M4 6.5h16M7 12h10M10 17.5h4"/>'),
+    group: svg('<path d="m12 3.8 8.5 4.4-8.5 4.4-8.5-4.4z"/><path d="m3.5 12.2 8.5 4.4 8.5-4.4"/><path d="m3.5 16.2 8.5 4.4 8.5-4.4"/>'),
     select: svg('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="m8.5 12.2 2.4 2.4 4.6-4.9"/>'),
     deck: svg('<path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.1-.9-1.6-.9-2.6 0-.9.8-1.6 1.7-1.6H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11.5" r="1.2"/><circle cx="10.5" cy="7.5" r="1.2"/><circle cx="15.2" cy="7.8" r="1.2"/>'),
   };
@@ -120,7 +122,7 @@
     quickEdit: true, // Bốc nhanh: đang mở khung nhập danh sách (false = thu gọn thành một dòng tóm tắt)
     recentMode: 'out',
     spinFilter: 'main', // loại món đang bốc; mở app thì lấy lại lựa chọn cuối (settings.spinFilter)
-    menuFilter: 'all',
+    menuFilters: { cat: 'all', veg: 'all', where: 'all', hearts: 'all' }, // bộ lọc Thực đơn (không nhớ qua các lần mở app)
     editingId: null,
     selecting: false, // Thực đơn: đang ở chế độ chọn nhiều lá để xoá
     selected: new Set(), // id các món đang được chọn
@@ -376,11 +378,6 @@
 
   // Chất bài của từng loại món: icon trong icons/suits, tô bằng màu của loại (--c)
   const suit = (cat, cls = '') => `<i class="suit${cls ? ` ${cls}` : ''}" data-cat="${cat}" aria-hidden="true"></i>`;
-
-  const chipsHTML = (active, counts) => FILTERS.map(f => `
-    <button type="button" class="chip" data-filter="${f.id}" aria-pressed="${f.id === active}">
-      ${CATS[f.id] ? suit(f.id) : '<i class="all-icon" aria-hidden="true"></i>'}${f.label}${counts ? `<small>${counts[f.id]}</small>` : ''}
-    </button>`).join('');
 
   function thumbHTML(food) {
     const cat = CATS[food.cat] ?? CATS.main;
@@ -1498,14 +1495,57 @@
     });
   }
 
+  // ---- Bộ lọc Thực đơn: [khoá, tiêu đề, [[giá trị, chữ, icon HTML, màu khi chọn]]]
+  const CAT_COLOR = { main: 'var(--tomato)', snack: 'var(--snack)', drink: 'var(--teal)' };
+  const MENU_FILTERS = [
+    ['cat', 'Loại món', [['all', 'Tất cả'], ...Object.entries(CATS).map(([id, c]) => [id, c.label, suit(id), CAT_COLOR[id]])]],
+    ['veg', 'Chay / Mặn', [['all', 'Tất cả'], ['veg', 'Chay', '<i class="veg-icon" aria-hidden="true"></i>', 'var(--veg)'], ['meat', 'Mặn', '<i class="meat-icon" aria-hidden="true"></i>', 'var(--meat)']]],
+    ['where', 'Ăn ngoài / Nấu ăn', [['all', 'Tất cả'], ['out', 'Ăn ngoài', MODES.out.emoji, 'var(--out)'], ['cook', 'Nấu ăn', MODES.cook.emoji, 'var(--cook)']]],
+    ['hearts', 'Số tim', [['all', 'Tất cả'], ['3', 'Từ 3 tim'], ['4', 'Từ 4 tim'], ['5', '5 tim']]],
+  ];
+  const menuMatch = (f, flt = ui.menuFilters) =>
+    (flt.cat === 'all' || f.cat === flt.cat)
+    && (flt.veg === 'all' || f.veg === (flt.veg === 'veg'))
+    && (flt.where === 'all' || !!f[flt.where])
+    && (flt.hearts === 'all' || f.hearts >= Number(flt.hearts));
+  // Các bộ lọc đang bật, theo thứ tự trong bảng: [[khoá, chữ]]
+  const activeFilters = () => MENU_FILTERS
+    .filter(([key]) => ui.menuFilters[key] !== 'all')
+    .map(([key, , opts]) => [key, opts.find(([v]) => v === ui.menuFilters[key])[1]]);
+
+  function filterPanelHTML(shown) {
+    const n = activeFilters().length;
+    return MENU_FILTERS.map(([key, title, opts]) => `
+      <div class="filter-sec">
+        <h4 id="flt-${key}">${title}</h4>
+        <div class="filter-pills" role="group" aria-labelledby="flt-${key}">
+          ${opts.map(([val, label, icon, c]) => `<button type="button" class="chip pill" data-key="${key}" data-val="${val}" aria-pressed="${ui.menuFilters[key] === val}"${c ? ` style="--c: ${c}"` : ''}>${icon ?? ''}${label}</button>`).join('')}
+        </div>
+      </div>`).join('') + `
+      <div class="filter-foot">
+        <button type="button" class="link" data-act="clear-filters"${n ? '' : ' disabled'}>Xoá lọc</button>
+        <span class="muted">Đang hiện ${shown} món</span>
+      </div>`;
+  }
+
   function renderMenu() {
-    const counts = { all: state.foods.length, main: 0, snack: 0, drink: 0 };
-    state.foods.forEach(f => { counts[f.cat]++; });
-    $('#menuChips').innerHTML = chipsHTML(ui.menuFilter, counts);
-    $('#menuCount').textContent = state.foods.length ? `${state.foods.length} món` : '';
+    const total = state.foods.length;
+    $('#menuCount').textContent = total ? `${total} món` : '';
 
     const rest = { out: restingIds('out'), cook: restingIds('cook') };
-    const items = state.foods.filter(f => inFilter(f, ui.menuFilter));
+    const items = state.foods.filter(f => menuMatch(f));
+
+    // Hàng công cụ: tóm tắt bên trái, nút icon Lọc (kèm số bộ lọc đang bật) / Nhóm theo bên phải
+    const active = activeFilters();
+    $('#menuSummary').innerHTML = !active.length
+      ? (total ? `Tất cả <b>${total}</b> món` : '')
+      : `<b>${items.length}</b>/${total} món · ${active.map(([, label]) => esc(label)).join(' · ')} <button type="button" class="link inline" data-act="clear-filters">Xoá lọc</button>`;
+    const filterBtn = $('#filterBtn');
+    filterBtn.innerHTML = `${ICONS.filter}${active.length ? `<span class="tool-badge">${active.length}</span>` : ''}`;
+    filterBtn.classList.toggle('on', active.length > 0);
+    filterBtn.setAttribute('aria-label', active.length ? `Bộ lọc, đang bật ${active.length}` : 'Bộ lọc');
+    filterBtn.title = 'Lọc thực đơn';
+    $('#filterPanel').innerHTML = filterPanelHTML(items.length);
     // Nút nhỏ dưới lá: chỉ biểu tượng, chú thích ở title / aria-label
     const toggle = (f, mode) => {
       const on = !!f[mode];
@@ -1530,14 +1570,14 @@
         </div>
       </li>`;
 
-    // Nhóm theo: bỏ lựa chọn "Loại món" khi đang lọc một loại (vd. tab Nước thì mọi món đều là nước)
-    const choices = MENU_GROUPS.filter(([id]) => id !== 'cat' || ui.menuFilter === 'all');
+    // Nhóm theo: bỏ lựa chọn "Loại món" khi đang lọc một loại (vd. lọc Nước thì mọi món đều là nước)
+    const choices = MENU_GROUPS.filter(([id]) => id !== 'cat' || ui.menuFilters.cat === 'all');
     const group = choices.some(([id]) => id === state.settings.menuGroup) ? state.settings.menuGroup : 'none';
-    groupPicker.render(choices, group, { name: 'Nhóm theo', key: 'Nhóm theo' });
+    groupPicker.render(choices, group, { name: 'Nhóm theo', icon: ICONS.group });
 
     const groups = menuGroups(items, group);
     $('#foodList').innerHTML = !items.length
-      ? '<li class="empty-note">Chưa có món nào ở mục này.</li>'
+      ? `<li class="empty-note">${active.length ? 'Không có món nào khớp bộ lọc. <button type="button" class="link inline" data-act="clear-filters">Xoá lọc</button>' : 'Chưa có món nào ở mục này.'}</li>`
       : groups
         ? groups.filter(g => g.items.length).map(g => `
           <li class="group-head"${g.cat ? ` data-cat="${g.cat}"` : ''}><span>${g.label}</span><small>${g.items.length}</small></li>
@@ -1562,7 +1602,7 @@
     syncSelection();
   }
 
-  const visibleFoods = () => state.foods.filter(f => inFilter(f, ui.menuFilter));
+  const visibleFoods = () => state.foods.filter(f => menuMatch(f));
 
   function syncSelection() {
     // Món đã bị xoá / khôi phục thì bỏ khỏi danh sách chọn
@@ -1657,11 +1697,16 @@
     return {
       close,
       isOpen: () => !list.hidden,
-      // choices: [[id, chữ, icon HTML]]; name: tên đọc cho trình đọc màn hình; key: chữ nhạt đứng đầu nút (tuỳ chọn)
-      render(choices, current, { name, key } = {}) {
+      // choices: [[id, chữ, icon HTML]]; name: tên đọc cho trình đọc màn hình; key: chữ nhạt đứng đầu nút (tuỳ chọn);
+      // icon: nút chỉ là icon (lựa chọn hiện ở title), sáng lên khi khác lựa chọn đầu tiên
+      render(choices, current, { name, key, icon: btnIcon } = {}) {
         const [, label, icon] = choices.find(([id]) => id === current);
-        btn.innerHTML = `${key ? `<span class="dropdown-key">${key}</span>` : ''}<span class="dropdown-icon" aria-hidden="true">${icon}</span><span class="dropdown-label">${label}</span>${ICONS.chevron}`;
+        btn.innerHTML = btnIcon ?? `${key ? `<span class="dropdown-key">${key}</span>` : ''}<span class="dropdown-icon" aria-hidden="true">${icon}</span><span class="dropdown-label">${label}</span>${ICONS.chevron}`;
         btn.setAttribute('aria-label', `${name}: ${label}`);
+        if (btnIcon) {
+          btn.title = `${name}: ${label}`;
+          btn.classList.toggle('on', current !== choices[0][0]);
+        }
         list.innerHTML = choices.map(([id, text, ic]) => `
           <li role="option" data-value="${id}" aria-selected="${id === current}" tabindex="-1">
             <span class="dropdown-emoji" aria-hidden="true">${ic}</span><span class="dropdown-text">${text}</span>${id === current ? ICONS.check : ''}
@@ -1689,7 +1734,7 @@
     if (by === 'veg') {
       return [
         { label: '<i class="veg-icon" aria-hidden="true"></i> Món chay', items: items.filter(f => f.veg) },
-        { label: '🍖 Món mặn', items: items.filter(f => !f.veg) },
+        { label: '<i class="meat-icon" aria-hidden="true"></i> Món mặn', items: items.filter(f => !f.veg) },
       ];
     }
     if (by === 'where') {
@@ -2220,12 +2265,52 @@
     toast('Đã xoá danh sách bốc nhanh', { label: 'Hoàn tác', run: () => setQuickText(before) });
   });
 
-  $('#menuChips').addEventListener('click', e => {
-    const filter = e.target.closest('[data-filter]')?.dataset.filter;
-    if (!filter) return;
-    ui.menuFilter = filter;
+  // ---- Bảng Bộ lọc Thực đơn: bấm nút icon mới hiện, chọn là lọc ngay; bấm ra ngoài / Esc để đóng
+  const filterPicker = $('#filterPicker');
+  const filterPanel = $('#filterPanel');
+  const outsideFilters = e => { if (!filterPicker.contains(e.target)) closeFilters(); };
+  function openFilters() {
+    filterPanel.hidden = false;
+    $('#filterBtn').setAttribute('aria-expanded', 'true');
+    filterPanel.querySelector('[aria-pressed=true]')?.focus();
+    document.addEventListener('pointerdown', outsideFilters, true);
+  }
+  function closeFilters(refocus = false) {
+    if (filterPanel.hidden) return;
+    filterPanel.hidden = true;
+    $('#filterBtn').setAttribute('aria-expanded', 'false');
+    document.removeEventListener('pointerdown', outsideFilters, true);
+    if (refocus) $('#filterBtn').focus();
+  }
+  function clearFilters() {
+    for (const key of Object.keys(ui.menuFilters)) ui.menuFilters[key] = 'all';
     renderMenu();
+  }
+  $('#filterBtn').addEventListener('click', () => (filterPanel.hidden ? openFilters() : closeFilters()));
+  filterPanel.addEventListener('click', e => {
+    const pill = e.target.closest('[data-key]');
+    if (pill) {
+      const { key, val } = pill.dataset;
+      ui.menuFilters[key] = val;
+      renderMenu();
+      filterPanel.querySelector(`[data-key="${key}"][data-val="${val}"]`)?.focus(); // bảng vừa vẽ lại: giữ chỗ đang bấm
+    } else if (e.target.closest('[data-act="clear-filters"]')) {
+      clearFilters();
+      filterPanel.querySelector('[aria-pressed=true]')?.focus();
+    }
   });
+  filterPicker.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || filterPanel.hidden) return;
+    e.preventDefault();
+    closeFilters(true);
+  });
+  filterPicker.addEventListener('focusout', e => {
+    if (e.relatedTarget && !filterPicker.contains(e.relatedTarget)) closeFilters();
+  });
+  // "Xoá lọc" ở dòng tóm tắt và ở ghi chú khi danh sách trống
+  for (const el of [$('#menuSummary'), $('#foodList')]) {
+    el.addEventListener('click', e => { if (e.target.closest('[data-act="clear-filters"]')) clearFilters(); });
+  }
 
   stage.addEventListener('click', () => {
     if (ui.phase === 'idle' && spinPool().length) spin();
@@ -2359,7 +2444,7 @@
   $('#selectDelete').addEventListener('click', () => removeFoods(new Set(ui.selected)));
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape' || e.defaultPrevented || !ui.selecting || ui.view !== 'menu') return;
-    if (document.querySelector('dialog[open]') || groupPicker.isOpen()) return;
+    if (document.querySelector('dialog[open]') || groupPicker.isOpen() || !filterPanel.hidden) return;
     setSelecting(false);
   });
 

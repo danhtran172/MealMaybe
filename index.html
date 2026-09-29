@@ -101,10 +101,15 @@
               <button type="button" class="btn primary small" id="selectDelete"></button>
             </div>
           </div>
-          <div class="chips small" id="menuChips" aria-label="Lọc thực đơn"></div>
-          <div class="group-by">
+          <!-- Tóm tắt đang hiện gì + hai nút icon Lọc / Nhóm theo (bấm mới hiện lựa chọn) -->
+          <div class="menu-tools">
+            <p class="menu-summary" id="menuSummary" aria-live="polite"></p>
+            <div class="popover" id="filterPicker">
+              <button type="button" class="tool-icon" id="filterBtn" aria-haspopup="true" aria-expanded="false" aria-controls="filterPanel"></button>
+              <div class="dropdown-list filter-panel" id="filterPanel" role="group" aria-label="Bộ lọc thực đơn" hidden></div>
+            </div>
             <div class="dropdown" id="groupPicker">
-              <button type="button" class="chip dropdown-btn" id="groupBtn" aria-haspopup="listbox" aria-expanded="false" aria-controls="groupList"></button>
+              <button type="button" class="tool-icon dropdown-btn" id="groupBtn" aria-haspopup="listbox" aria-expanded="false" aria-controls="groupList"></button>
               <ul class="dropdown-list" id="groupList" role="listbox" aria-label="Nhóm theo" hidden></ul>
             </div>
           </div>
