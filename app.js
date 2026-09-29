@@ -119,7 +119,7 @@
     mode: 'out', // out = ăn ngoài, cook = nấu ăn, quick = bốc nhanh; mở app thì quay lại chế độ dùng lần cuối (settings.lastMode)
     quickEdit: true, // Bốc nhanh: đang mở khung nhập danh sách (false = thu gọn thành một dòng tóm tắt)
     recentMode: 'out',
-    spinFilter: 'all',
+    spinFilter: 'main', // loại món đang bốc; mở app thì lấy lại lựa chọn cuối (settings.spinFilter)
     menuFilter: 'all',
     editingId: null,
     selecting: false, // Thực đơn: đang ở chế độ chọn nhiều lá để xoá
@@ -232,6 +232,7 @@
     return {
       drawMode: s?.drawMode === 'manual' ? 'manual' : 'auto',
       lastMode: ['out', 'cook', 'quick'].includes(s?.lastMode) ? s.lastMode : 'out', // Ăn ngoài / Nấu ăn / Bốc nhanh lần cuối dùng
+      spinFilter: FILTERS.some(f => f.id === s?.spinFilter) ? s.spinFilter : 'main', // loại món bốc lần cuối, mặc định Món chính
       sound: s?.sound !== false,
       vegOnly: s?.vegOnly === true, // chỉ xào món chay; nhớ qua các lần mở app
       menuGroup: MENU_GROUPS.some(([id]) => id === s?.menuGroup) ? s.menuGroup : 'none', // nhóm danh sách Thực đơn
@@ -392,13 +393,13 @@
   // ---------- Màn Bốc bài ----------
   function renderSpin() {
     const quick = isQuick();
-    const chips = $('#spinChips');
-    chips.innerHTML = chipsHTML(ui.spinFilter);
-    chips.classList.toggle('locked', busy());
-    chips.hidden = quick;
-    $('#vegToggle').hidden = quick;
+    // Đang bốc (từ lúc bấm Xào bài đến khi Quay lại): ẩn tên app và các phần chọn, chỉ giữ Tự động / Tôi chọn
+    $('#view-spin').classList.toggle('drawing', ui.phase !== 'idle');
+    $('#modeSeg').classList.toggle('locked', busy());
+    catPicker.render(CAT_CHOICES, ui.spinFilter, { name: 'Loại món' });
+    if (busy()) catPicker.close();
+    $('#spinTools').hidden = quick; // Bốc nhanh không chia loại món, không lọc chay
     $('#spinTools').classList.toggle('locked', busy());
-    $('#spinTools').classList.toggle('quick', quick);
     const where = $('#whereSeg');
     where.classList.toggle('locked', busy());
     for (const r of where.querySelectorAll('input')) r.checked = r.value === ui.mode;
@@ -1254,6 +1255,8 @@
   function setSpinFilter(filter) {
     if (busy() || filter === ui.spinFilter) return;
     ui.spinFilter = filter;
+    state.settings.spinFilter = filter; // lần mở app sau giữ nguyên loại món này
+    save();
     ui.rejected = null;
     if (ui.phase !== 'idle') {
       ui.phase = 'idle';
@@ -1530,7 +1533,7 @@
     // Nhóm theo: bỏ lựa chọn "Loại món" khi đang lọc một loại (vd. tab Nước thì mọi món đều là nước)
     const choices = MENU_GROUPS.filter(([id]) => id !== 'cat' || ui.menuFilter === 'all');
     const group = choices.some(([id]) => id === state.settings.menuGroup) ? state.settings.menuGroup : 'none';
-    renderGroupPicker(choices, group);
+    groupPicker.render(choices, group, { name: 'Nhóm theo', key: 'Nhóm theo' });
 
     const groups = menuGroups(items, group);
     $('#foodList').innerHTML = !items.length
@@ -1601,48 +1604,82 @@
     syncSelection();
   }
 
-  // ---- Dropdown "Nhóm theo": nút kiểu chip + danh sách thả xuống (mẫu listbox, dùng được bằng bàn phím)
-  const groupBtn = $('#groupBtn');
-  const groupList = $('#groupList');
+  // ---- Dropdown dùng chung (Loại món ở Bốc bài, Nhóm theo ở Thực đơn): nút kiểu chip + danh sách thả xuống
+  // (mẫu listbox, dùng được bằng bàn phím ↑ ↓ Home End Enter Esc)
+  function dropdown(picker, onPick) {
+    const btn = picker.querySelector('.dropdown-btn');
+    const list = picker.querySelector('.dropdown-list');
+    const options = () => [...list.querySelectorAll('[role=option]')];
+    const outside = e => { if (!picker.contains(e.target)) close(); };
+    function open() {
+      list.hidden = false;
+      btn.setAttribute('aria-expanded', 'true');
+      (list.querySelector('[aria-selected=true]') ?? options()[0])?.focus();
+      document.addEventListener('pointerdown', outside, true);
+    }
+    function close(refocus = false) {
+      if (list.hidden) return;
+      list.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('pointerdown', outside, true);
+      if (refocus) btn.focus();
+    }
+    const pick = id => { close(true); onPick(id); };
 
-  function renderGroupPicker(choices, group) {
-    const [, label, emoji] = MENU_GROUPS.find(([id]) => id === group);
-    groupBtn.innerHTML = `<span class="dropdown-key">Nhóm theo</span><span aria-hidden="true">${emoji}</span>${label}${ICONS.chevron}`;
-    groupBtn.setAttribute('aria-label', `Nhóm theo: ${label}`);
-    groupList.innerHTML = choices.map(([id, text, icon]) => `
-      <li role="option" id="group-${id}" data-group="${id}" aria-selected="${id === group}" tabindex="-1">
-        <span class="dropdown-emoji" aria-hidden="true">${icon}</span><span class="dropdown-text">${text}</span>${id === group ? ICONS.check : ''}
-      </li>`).join('');
+    btn.addEventListener('click', () => (list.hidden ? open() : close()));
+    btn.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        open();
+      }
+    });
+    list.addEventListener('click', e => {
+      const id = e.target.closest('[data-value]')?.dataset.value;
+      if (id) pick(id);
+    });
+    list.addEventListener('keydown', e => {
+      const opts = options();
+      const i = opts.indexOf(document.activeElement);
+      const go = k => { e.preventDefault(); opts[(k + opts.length) % opts.length].focus(); };
+      if (e.key === 'ArrowDown') go(i + 1);
+      else if (e.key === 'ArrowUp') go(i - 1);
+      else if (e.key === 'Home') go(0);
+      else if (e.key === 'End') go(opts.length - 1);
+      else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (i >= 0) pick(opts[i].dataset.value);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        close(true);
+      } else if (e.key === 'Tab') close();
+    });
+
+    return {
+      close,
+      isOpen: () => !list.hidden,
+      // choices: [[id, chữ, icon HTML]]; name: tên đọc cho trình đọc màn hình; key: chữ nhạt đứng đầu nút (tuỳ chọn)
+      render(choices, current, { name, key } = {}) {
+        const [, label, icon] = choices.find(([id]) => id === current);
+        btn.innerHTML = `${key ? `<span class="dropdown-key">${key}</span>` : ''}<span class="dropdown-icon" aria-hidden="true">${icon}</span><span class="dropdown-label">${label}</span>${ICONS.chevron}`;
+        btn.setAttribute('aria-label', `${name}: ${label}`);
+        list.innerHTML = choices.map(([id, text, ic]) => `
+          <li role="option" data-value="${id}" aria-selected="${id === current}" tabindex="-1">
+            <span class="dropdown-emoji" aria-hidden="true">${ic}</span><span class="dropdown-text">${text}</span>${id === current ? ICONS.check : ''}
+          </li>`).join('');
+      },
+    };
   }
 
-  const groupOptions = () => [...groupList.querySelectorAll('[role=option]')];
-
-  function openGroups() {
-    groupList.hidden = false;
-    groupBtn.setAttribute('aria-expanded', 'true');
-    (groupList.querySelector('[aria-selected=true]') ?? groupOptions()[0])?.focus();
-    document.addEventListener('pointerdown', outsideGroups, true);
-  }
-
-  function closeGroups(refocus = false) {
-    if (groupList.hidden) return;
-    groupList.hidden = true;
-    groupBtn.setAttribute('aria-expanded', 'false');
-    document.removeEventListener('pointerdown', outsideGroups, true);
-    if (refocus) groupBtn.focus();
-  }
-
-  function outsideGroups(e) {
-    if (!$('#groupPicker').contains(e.target)) closeGroups();
-  }
-
-  function pickGroup(id) {
-    closeGroups(true);
+  const groupPicker = dropdown($('#groupPicker'), id => {
     if (id === state.settings.menuGroup) return;
     state.settings.menuGroup = id;
     save();
     renderMenu();
-  }
+  });
+
+  // Loại món ở màn Bốc bài: Tất cả / Món chính / Ăn vặt / Nước
+  const CAT_CHOICES = FILTERS.map(f => [f.id, f.label, CATS[f.id] ? suit(f.id) : '<i class="all-icon" aria-hidden="true"></i>']);
+  const catPicker = dropdown($('#catPicker'), id => setSpinFilter(id));
 
   // Chia món thành các nhóm có tiêu đề; "none" thì trả về null (danh sách phẳng)
   function menuGroups(items, by) {
@@ -2152,11 +2189,6 @@
     e.target.checked = state.settings.vegOnly; // đang xào thì setVeg bỏ qua: trả công tắc về như cũ
   });
 
-  $('#spinChips').addEventListener('click', e => {
-    const filter = e.target.closest('[data-filter]')?.dataset.filter;
-    if (filter) setSpinFilter(filter);
-  });
-
   // Bốc nhanh: khung nhập danh sách
   quickText.addEventListener('input', onQuickInput);
   quickText.addEventListener('scroll', syncBullets);
@@ -2186,34 +2218,6 @@
     setQuickText('');
     quickText.focus();
     toast('Đã xoá danh sách bốc nhanh', { label: 'Hoàn tác', run: () => setQuickText(before) });
-  });
-
-  groupBtn.addEventListener('click', () => (groupList.hidden ? openGroups() : closeGroups()));
-  groupBtn.addEventListener('keydown', e => {
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      openGroups();
-    }
-  });
-  groupList.addEventListener('click', e => {
-    const id = e.target.closest('[data-group]')?.dataset.group;
-    if (id) pickGroup(id);
-  });
-  groupList.addEventListener('keydown', e => {
-    const opts = groupOptions();
-    const i = opts.indexOf(document.activeElement);
-    const go = k => { e.preventDefault(); opts[(k + opts.length) % opts.length].focus(); };
-    if (e.key === 'ArrowDown') go(i + 1);
-    else if (e.key === 'ArrowUp') go(i - 1);
-    else if (e.key === 'Home') go(0);
-    else if (e.key === 'End') go(opts.length - 1);
-    else if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      if (i >= 0) pickGroup(opts[i].dataset.group);
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      closeGroups(true);
-    } else if (e.key === 'Tab') closeGroups();
   });
 
   $('#menuChips').addEventListener('click', e => {
@@ -2355,7 +2359,7 @@
   $('#selectDelete').addEventListener('click', () => removeFoods(new Set(ui.selected)));
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape' || e.defaultPrevented || !ui.selecting || ui.view !== 'menu') return;
-    if (document.querySelector('dialog[open]') || !groupList.hidden) return;
+    if (document.querySelector('dialog[open]') || groupPicker.isOpen()) return;
     setSelecting(false);
   });
 
@@ -2654,6 +2658,7 @@
     const params = new URLSearchParams(location.search);
     const spinParam = params.get('spin');
     ui.mode = state.settings.lastMode;
+    ui.spinFilter = state.settings.spinFilter;
     if (MODES[ui.mode]) ui.recentMode = ui.mode;
     if (params.get('mode') === 'cook') ui.mode = ui.recentMode = 'cook';
     else if (params.get('mode') === 'quick') ui.mode = 'quick';

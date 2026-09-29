@@ -890,6 +890,12 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
   transition: opacity .2s;
 }
 .spin-tools.locked { pointer-events: none; opacity: .5; }
+/* Đang bốc: chỉ giữ Tự động / Tôi chọn phía trên bộ bài; điện thoại / tablet ẩn luôn tên app ở đầu trang */
+#view-spin.drawing :is(#whereSeg, #quickBox, #spinTools, #poolNote) { display: none; }
+@media (max-width: 959px) {
+  body:has(#view-spin.drawing:not([hidden])) .brand { display: none; }
+  body:has(#view-spin.drawing:not([hidden])) .side { padding: calc(10px + env(safe-area-inset-top)) var(--gutter) 0; }
+}
 .tool-btn {
   display: inline-flex;
   align-items: center;
@@ -930,12 +936,36 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 .mini-seg input:checked + span { background: var(--raised); color: var(--ink); box-shadow: 0 1px 3px rgb(40 20 5 / .15); }
 .mini-seg input:focus-visible + span { outline: 2.5px solid var(--tomato); outline-offset: 1px; }
 
-/* Nút trên sân khấu: Về bộ bài (trái), âm thanh (phải) */
+/* Hàng nút trên sân khấu: Quay lại (trái) | Tự động / Tôi chọn khi đang bốc (giữa) | Xem bộ bài · âm thanh (phải).
+   Chỗ trống của hàng để bấm xuyên xuống sân khấu. */
 .stage-wrap { position: relative; }
-.stage-btn {
+.stage-bar {
   position: absolute;
   top: 8px;
+  left: 0;
+  right: 0;
   z-index: 5;
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr); /* hai bên cân nhau nếu đủ chỗ, không bao giờ đè lên nút giữa */
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.stage-bar > div { display: flex; gap: 8px; }
+.stage-bar-end { justify-content: flex-end; }
+.stage-bar :is(button, .mini-seg) { pointer-events: auto; }
+/* Tự động / Tôi chọn trên hàng nút: cao bằng các nút tròn */
+.stage-bar .mini-seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 36px;
+  padding: 3px;
+  border: 1.5px solid var(--line);
+  transition: opacity .2s;
+}
+.stage-bar .mini-seg span { display: flex; align-items: center; justify-content: center; height: 100%; padding: 0 11px; white-space: nowrap; }
+.mini-seg.locked { pointer-events: none; opacity: .5; }
+.stage-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -954,11 +984,11 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
 }
 .stage-btn:hover { background: var(--surface-2); color: var(--ink); }
 .stage-btn svg { width: 18px; height: 18px; }
-.back-btn { left: 0; padding: 0 13px 0 7px; animation: pop-in .22s cubic-bezier(.2, .9, .3, 1.2); }
-.sound-btn { right: 0; width: 36px; }
+.back-btn { flex: none; padding: 0 13px 0 7px; animation: pop-in .22s cubic-bezier(.2, .9, .3, 1.2); }
+.sound-btn { width: 36px; }
 .sound-btn[aria-pressed="false"] { color: var(--ink-3); }
 /* Xem bộ bài: nút icon ở góc phải, bên trái nút âm thanh */
-.peek-btn { right: 44px; width: 36px; }
+.peek-btn { width: 36px; }
 @keyframes pop-in { from { opacity: 0; transform: translateX(-6px); } }
 
 /* Lời bình của bộ bài */
@@ -2089,41 +2119,15 @@ button.swatch:focus-visible { outline: 2.5px solid var(--tomato); outline-offset
 .where-switch input:not(:checked) + span .mode-icon { opacity: .55; }
 
 /* ===== Màn Bốc bài: hàng nút điều khiển to, rõ, thẳng hàng (ưu tiên điện thoại) =====
-   1. Ăn ngoài / Nấu ăn   2. Loại món: 4 ô bằng nhau   3. Món chay + Tự động / Chọn bài */
+   1. Ăn ngoài / Nấu ăn / Bốc nhanh   2. Loại món (dropdown) + Món chay   (Tự động / Tôi chọn nằm trên hàng nút của bộ bài) */
 #view-spin .where-switch,
-#spinChips,
 #spinTools { width: 100%; max-width: 520px; margin-left: auto; margin-right: auto; }
 
 #view-spin .where-switch { margin-bottom: 10px; padding: 4px; }
 #view-spin .where-switch span { height: 46px; font-size: 15.5px; gap: 8px; }
 #view-spin .where-switch b { font-size: 21px; display: flex; }
 
-/* Loại món: lưới 4 ô, icon trên chữ dưới — không còn phải vuốt ngang */
-#spinChips {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  padding: 0;
-  overflow: visible;
-}
-#spinChips .chip {
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  min-width: 0;
-  height: 62px;
-  padding: 6px 4px;
-  border-radius: 16px;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.1;
-  white-space: nowrap;
-}
-#spinChips .chip .suit,
-#spinChips .chip .all-icon { width: 24px; height: 24px; vertical-align: 0; }
-#spinChips .chip[aria-pressed="true"] { box-shadow: 0 6px 14px -8px var(--c); }
-
-/* Món chay + cách rút: hai ô bằng nhau, cao bằng nhau */
+/* Loại món + Món chay: hai ô bằng nhau, cao bằng nhau, cùng kiểu nền */
 #spinTools {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -2145,32 +2149,34 @@ button.swatch:focus-visible { outline: 2.5px solid var(--tomato); outline-offset
 #spinTools .veg-toggle .veg-icon { width: 22px; height: 22px; }
 #spinTools .veg-toggle:hover { background: color-mix(in srgb, var(--ink) 6%, var(--surface-2)); }
 #spinTools .veg-toggle:has(:checked) { background: color-mix(in srgb, var(--veg) 18%, var(--surface-2)); }
-#spinTools .mini-seg { display: grid; grid-template-columns: 1fr 1fr; height: 46px; padding: 4px; }
-#spinTools .mini-seg span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 0 6px;
+/* Loại món: nút dropdown trông như ô Món chay bên cạnh, danh sách thả xuống thẳng mép trái */
+#spinTools .cat-picker { min-width: 0; }
+#spinTools .cat-picker .dropdown-btn {
+  width: 100%;
+  height: 46px;
+  gap: 8px;
+  padding: 0 12px 0 14px;
+  border: 0;
+  background: var(--surface-2);
   font-size: 14px;
   font-weight: 700;
 }
+#spinTools .cat-picker .dropdown-btn:hover { background: color-mix(in srgb, var(--ink) 6%, var(--surface-2)); }
+#spinTools .cat-picker .dropdown-btn[aria-expanded="true"] { box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+#spinTools .cat-picker .dropdown-label { flex: 1; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.cat-picker .dropdown-icon { display: flex; }
+.cat-picker .dropdown-icon :is(.suit, .all-icon) { width: 22px; height: 22px; }
+.cat-picker .dropdown-emoji { display: flex; justify-content: center; }
+.cat-picker .dropdown-emoji :is(.suit, .all-icon) { width: 20px; height: 20px; }
+.cat-picker .dropdown-list { left: 0; right: auto; width: 100%; min-width: 190px; transform-origin: top left; }
 
 #view-spin .pool-note { margin-top: 10px; font-size: 13.5px; }
 /* Tự động / Tôi chọn: ô đang chọn tô cam */
 #modeSeg input:checked + span { background: color-mix(in srgb, var(--tomato) var(--fill-k), #000); color: var(--on-tomato); box-shadow: 0 2px 6px -2px color-mix(in srgb, var(--tomato) 70%, transparent); }
 
-/* Màn rộng: loại món thành hàng ngang icon + chữ */
-@media (min-width: 640px) {
-  #spinChips .chip { flex-direction: row; gap: 7px; height: 48px; border-radius: 999px; font-size: 14px; }
-  #spinChips .chip .suit,
-  #spinChips .chip .all-icon { width: 20px; height: 20px; }
-}
 /* Điện thoại rất hẹp */
 @media (max-width: 359px) {
-  #spinChips { gap: 6px; }
-  #spinChips .chip { font-size: 12px; }
-  #spinTools .veg-toggle, #spinTools .mini-seg span { font-size: 13px; }
+  #spinTools .veg-toggle, #spinTools .cat-picker .dropdown-btn { font-size: 13px; }
 }
 
 @media (prefers-color-scheme: dark) { .form-error { color: var(--tomato); } }
@@ -2357,7 +2363,6 @@ button.swatch:focus-visible { outline: 2.5px solid var(--tomato); outline-offset
 .quick-sum-edit svg { width: 15px; height: 15px; }
 
 /* Bốc nhanh chỉ còn nút Tự động / Tôi chọn: chiếm cả hàng */
-#spinTools.quick { grid-template-columns: minmax(0, 1fr); }
 
 /* Lá bản sao khi nhân bản: viền loé màu Bốc nhanh */
 .card.clone .card-back { animation: clone-glow .5s ease-out; }
