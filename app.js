@@ -556,8 +556,9 @@
     // Vẫn xếp lịch khi context đang tạm dừng: đồng hồ của nó đứng yên nên tiếng sẽ phát đúng nhịp ngay khi chạy lại
     const ready = () => !!ctx && ctx.state !== 'closed' && state.settings.sound;
 
-    // iPhone/iPad (Safari 16.4+): mặc định Web Audio im khi gạt công tắc im lặng.
-    // "playback" cho app phát tiếng như app nghe nhạc; "auto" trả lại mặc định khi tắt loa.
+    // iPhone/iPad (Safari 16.4+): "ambient" là loại dành cho tiếng hiệu ứng: trộn chung với nhạc
+    // của app khác, theo công tắc im lặng và không hiện lên Dynamic Island / màn hình khoá như
+    // "playback". "auto" trả lại mặc định khi tắt loa.
     function audioSession(type) {
       try { if (navigator.audioSession) navigator.audioSession.type = type; } catch { /* trình duyệt không hỗ trợ */ }
     }
@@ -567,7 +568,7 @@
       if (!state.settings.sound) return;
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
-      audioSession('playback');
+      audioSession('ambient');
       if (!ctx) {
         ctx = new AC();
         noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
@@ -637,7 +638,7 @@
       wake,
       // Cắt mọi tiếng đã hẹn giờ (khi huỷ lượt xào hoặc tắt tiếng)
       stop() { out?.disconnect(); out = null; },
-      // Tắt loa: dừng hẳn context và trả phiên âm thanh về mặc định để không chặn nhạc của app khác
+      // Tắt loa: dừng hẳn context và trả phiên âm thanh về mặc định
       mute() {
         out?.disconnect();
         out = null;
